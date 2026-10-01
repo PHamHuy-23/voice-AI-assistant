@@ -859,13 +859,14 @@ Không cần dành quá nhiều nội dung cho bug này. Nó nên được xem l
 [x] Preprocessing AudioMNIST: Resample 48k->16k, peak norm, pad/crop 1s, hoàn thành 30.000 file (0 lỗi)
 [x] Preprocessing Fluent Speech Commands: Segmentation 1s, hoàn thành 83.777 segments từ 30.043 utterances (mean=2.7886 seg/utt, 0 lỗi)
 [x] Hoàn thiện Mục 2.3 Báo cáo giữa kỳ với 100% số liệu thực nghiệm và bảng đối chiếu
+[x] Kiểm tra feature extraction của model (Mục 2.4): MFCC 40 coefficients, window 40ms, stride 20ms, n_fft 640, hop 320
+[x] Xác định kích thước tensor đầu vào thực tế cho TD-ResNet: [1, 51, 40] tương ứng (1 channel x 51 time frames x 40 MFCCs)
+[x] Hoàn thiện Mục 2.4 Báo cáo giữa kỳ với đầy đủ cơ sở lý thuyết, công thức toán và cấu hình thực tế
 ```
 
 Chưa hoàn thành:
 
 ```text
-[ ] Kiểm tra feature extraction của model (Mục 2.4)
-[ ] Trích xuất Log Mel-spectrogram / MFCC cho mô hình
 [ ] Xây dựng thực nghiệm minh họa Raw vs Processed (Mục 2.5)
 [ ] Cài đặt mô hình TD-ResNet + ProtoNet (Chương 3)
 ```
