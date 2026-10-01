@@ -1,0 +1,7 @@
+metric,raw,prepared
+Total raw WAV,105835.0,
+Keyword classes,35.0,35.0
+Files < 1 sec removed,10435.0,0.0
+Core classes,,30.0
+Unknown classes,,5.0
+Prepared keyword WAV,,33790.0

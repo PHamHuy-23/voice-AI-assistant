@@ -1,0 +1,4 @@
+split,num_classes
+train,20
+val,5
+test,5

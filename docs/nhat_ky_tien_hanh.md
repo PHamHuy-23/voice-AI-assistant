@@ -1062,3 +1062,37 @@ our experiment observes Z
 ```
 
 Không tự hòa trộn ba nguồn thành một kết luận duy nhất.
+
+---
+
+# 26. Tích hợp dữ liệu kiểm toán thực tế và hoàn thiện Chương 2 vào Báo cáo
+
+Vào ngày 01/10/2026, toàn bộ dữ liệu kiểm toán và hình ảnh thực nghiệm thực tế từ môi trường Kaggle đã được đồng bộ vào thư mục `docs/` và tích hợp 100% vào báo cáo giữa kỳ (`Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`):
+
+### 26.1. Dữ liệu kiểm toán thô (Raw Data Audit - `docs/data_audit/`)
+- `gsc_raw_class_distribution.csv`: Thống kê phân bố toàn bộ 35 lớp từ khóa của Google Speech Commands v0.02 (105.829 file keyword + 6 file background noise = 105.835 file WAV). Đã tích hợp bảng phân bố 35 lớp (chia 2 cột song song) vào Mục 2.2.1.
+- `gsc_raw_speaker_distribution.csv`: Thống kê số lượng speaker cho từng từ khóa (từ 464 đến 1.668 speaker). Đã tích hợp bảng đối chiếu speaker toàn diện vào Mục 2.2.2, giải thích rõ cơ chế phân tách Core ($N_{speaker} \ge 1000 \rightarrow 30$ lớp) và Unknown ($N_{speaker} < 1000 \rightarrow 5$ lớp: `visual`, `learn`, `follow`, `forward`, `backward`).
+- `gsc_raw_shorter_than_1s.csv`: Danh sách chính xác 10.435 file ngắn hơn 1 giây (chiếm 9,8597%) bị loại bỏ trong bước Filtering.
+
+### 26.2. Kiểm toán FS-GSC sau chuẩn bị (FS-GSC Final Audit - `docs/fs_gsc_final_audit/`)
+- `raw_vs_prepared_summary.csv`: Bảng đối chiếu trực diện 6 tiêu chí kỹ thuật giữa Raw GSC và FS-GSC Prepared (105.835 WAV thô $\rightarrow$ 33.790 WAV chuẩn bị, loại bỏ 10.435 file ngắn, cân bằng 30 Core classes và 5 Unknown classes). Đã tích hợp vào Mục 2.3.7.
+- `core_split_summary.csv` & `unknown_split_summary.csv`: Bảng tổng hợp cấu trúc phân chia Train (20 Core classes / 21.240 mẫu; 1.155 Unknown samples), Validation (5 Core classes / 5.310 mẫu; 390 Unknown samples), Test (5 Core classes / 5.310 mẫu; 385 Unknown samples). Tổng cộng toàn hệ thống: 33.790 mẫu.
+- `core_class_distribution.csv`: Xác nhận 30 Core classes, mỗi lớp chính xác 1.062 mẫu ($\mu = 1062, \sigma = 0$).
+- `unknown_class_distribution.csv`: Xác nhận 5 Unknown classes, mỗi lớp chính xác 386 mẫu.
+- `audio_metadata_sample.csv`: Metadata kiểm toán file âm thanh sau chuẩn bị (Sample rate 16.000 Hz, 1 channel mono, 16.000 frames, duration 1.0s, format WAV PCM_16). Đã tích hợp bảng trích xuất mẫu đại diện vào Mục 2.3.7.
+
+### 26.3. Hình ảnh trực quan hóa thực nghiệm Mục 2.5 (`docs/figures/2_5/`)
+Đã đồng bộ và nhúng sắc nét toàn bộ 8 cụm hình so sánh tín hiệu & đặc trưng:
+- **Hình 2.6**: Waveform và Spectrogram của mẫu FS-GSC sau tiền xử lý (`gsc_processed_waveform.png` & `gsc_processed_spectrogram.png`).
+- **Hình 2.7**: Mel-spectrogram và MFCC của mẫu FS-GSC sau tiền xử lý (`gsc_processed_mel.png` & `gsc_processed_mfcc.png`).
+- **Hình 2.8**: So sánh Waveform AudioMNIST trước và sau tiền xử lý (`audiomnist_raw_waveform.png` & `audiomnist_processed_waveform.png`).
+- **Hình 2.9**: So sánh Spectrogram AudioMNIST trước và sau tiền xử lý (`audiomnist_raw_spectrogram.png` & `audiomnist_processed_spectrogram.png`).
+- **Hình 2.10**: Mel-spectrogram và MFCC của AudioMNIST sau chuẩn hóa (`audiomnist_processed_mel.png` & `audiomnist_processed_mfcc.png`).
+- **Hình 2.11**: So sánh câu lệnh nguyên bản FSC và một segment 1 giây sau phân đoạn (`fsc_raw_waveform.png` & `fsc_segment_waveform.png`).
+- **Hình 2.12**: So sánh phổ Spectrogram toàn câu FSC và segment 1 sau xử lý (`fsc_raw_spectrogram.png` & `fsc_segment_spectrogram.png`).
+- **Hình 2.13**: Đặc trưng Mel-spectrogram và MFCC của segment câu lệnh FSC (`fsc_segment_mel.png` & `fsc_segment_mfcc.png`).
+- Bảng đo đạc định lượng kỹ thuật từ `audio_comparison_summary.csv` (Sample rate, Samples, Duration, Peak Amplitude, RMS).
+
+Toàn bộ báo cáo đã được biên dịch thành công ra file Word đạt chuẩn học thuật tại:
+- `G:\Desktop\docs\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
+- `G:\Desktop\voice-AI-assistant\docs\report\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
