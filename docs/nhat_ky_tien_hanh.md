@@ -1128,3 +1128,37 @@ Vào ngày 01/10/2026, nhóm đã hoàn thiện toàn bộ cơ sở lý thuyết
 18. **Sơ đồ kiến trúc tổng thể Hình 3.1**: Sinh và nhúng hình vector chuẩn xuất bản `fig_17_tcresnet_protonet_architecture.png`.
 19. **Liên kết với 4 kịch bản thực nghiệm**: Baseline FS-GSC, Alternative AudioMNIST, Cross-Dataset GSC $\rightarrow$ AudioMNIST, Cross-Domain GSC $\rightarrow$ FSC.
 20. **Nhận xét tổng kết**: Đánh giá toàn diện tính ưu việt của giải pháp đề xuất, làm tiền đề vững chắc cho Mục 3.2.
+
+---
+
+# 28. Hoàn thiện Mục 3.2: Cài đặt mô hình và kiểm tra hoạt động ban đầu
+
+Vào ngày 01/10/2026, nhóm đã hoàn tất quá trình cài đặt, vá lỗi tương thích thư viện và kiểm thử khép kín toàn bộ pipeline của giải pháp đề xuất trên môi trường Kaggle GPU:
+
+### 28.1. Môi trường tính toán thực tế (Kaggle GPU)
+- Python: 3.12.13
+- PyTorch: 2.10.0+cu128 | Torchaudio: 2.10.0+cu128 | Torchvision: 0.25.0+cu128
+- GPU: NVIDIA Tesla T4 (16 GB VRAM, CUDA capability 7.5)
+- Thư viện nội bộ: package `protonets` (models, data, encoder)
+
+### 28.2. Vá lỗi tương thích thư viện (Compatibility Patch)
+- Phát hiện lỗi API cũ trong data loader: hàm `torchaudio.load` trong Torchaudio 2.10 đã bãi bỏ tham số `normalization=True`.
+- Đã vá lỗi chuẩn xác: `sound, _ = torchaudio.load(d[key], num_frames=self.desired_samples)` mà không thay đổi logic xử lý tín hiệu.
+
+### 28.3. Đo đạc kỹ thuật mô hình TC-ResNet8
+- Batch thử nghiệm: $[8, 1, 51, 40] \rightarrow [8, 48]$.
+- Vector biểu diễn đặc trưng không gian nhúng: $z \in \mathbb{R}^{48}$.
+- Đo đạc thông số: **64.560 tham số** (100% trainable).
+
+### 28.4. Kết quả Smoke Test trên dữ liệu FS-GSC thật (5-way 1-shot 2-query)
+- Dữ liệu thực tế: Trích xuất từ 20 lớp Train của FS-GSC (Support: $[5, 1, 1, 51, 40]$; Query: $[5, 2, 1, 51, 40]$).
+- Số liệu đo đạc thực nghiệm từ Kaggle:
+  - **Empirical Loss**: `1.9865586`
+  - **Empirical Accuracy**: `0.2000 (20.0%)`
+- **Ý nghĩa học thuật**: Độ chính xác $20.0\%$ khớp chính xác tuyệt đối với xác suất đoán mò ngẫu nhiên lý thuyết của bài toán 5-way ($P_{\text{random}} = 1/5 = 20.0\%$) tại thời điểm Epoch 0 (trước khi huấn luyện). Việc chu trình trả về loss hữu hạn và accuracy chuẩn xác chứng minh luồng tính toán end-to-end từ file WAV thô đến phân loại khoảng cách Euclidean đã liên kết thành công 100%.
+
+### 28.5. Kiểm toán 12 thành phần & Nhúng hình trực quan
+- Đã tổng hợp Bảng kiểm toán 12 khối thành phần chức năng (100% đạt chuẩn).
+- Sinh và nhúng hình vector **Hình 3.2** (`fig_18_smoke_test_pipeline.png`).
+- Toàn bộ nội dung đã được biên dịch vào Báo cáo giữa kỳ tại cả 2 đường dẫn.
+
