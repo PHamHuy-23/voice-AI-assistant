@@ -776,16 +776,47 @@ urllib.request.urlretrieve(self.data_url, filepath, _progress)
 
 ---
 
-# 20. Patch đã đề xuất
+# 20. Tối ưu hóa tải và giải nén dữ liệu trên Kaggle (CELL 3B-FAST & 3C)
 
-Patch:
+Do hàm tải mặc định bằng `urllib` trong script của paper chạy rất chậm trên môi trường Kaggle, nhóm đã chuyển sang sử dụng giải pháp tải nhanh độc lập bằng tiện ích hệ thống `wget`:
 
+### CELL 3B-FAST — Tải trực tiếp file nén bằng wget:
 ```python
-old = "urllib.request.urlretrieve(data_url, filepath, _progress)"
-new = "urllib.request.urlretrieve(self.data_url, filepath, _progress)"
+%cd /kaggle/working/Few-Shot-KWS
+
+import os
+from pathlib import Path
+
+dataset_dir = Path("/kaggle/working/Few-Shot-KWS/speech_commands")
+dataset_dir.mkdir(parents=True, exist_ok=True)
+archive = dataset_dir / "speech_commands_v0.02.tar.gz"
+url = "https://storage.googleapis.com/download.tensorflow.org/data/speech_commands_v0.02.tar.gz"
+
+print("Downloading archive with wget...")
+!wget -c -q --show-progress "{url}" -O "{archive}"
+
+print("\nDownload finished.")
+print("Archive size:", round(archive.stat().st_size / (1024**3), 3), "GB")
 ```
 
-Sau patch cần reload module trước khi chạy lại.
+### CELL 3C — Giải nén toàn bộ dataset bằng tarfile:
+```python
+%cd /kaggle/working/Few-Shot-KWS
+
+import tarfile
+from pathlib import Path
+
+dataset_dir = Path("/kaggle/working/Few-Shot-KWS/speech_commands")
+archive = dataset_dir / "speech_commands_v0.02.tar.gz"
+
+print("Extracting...")
+with tarfile.open(archive, "r:gz") as tar:
+    tar.extractall(dataset_dir)
+
+print("✅ Extraction complete")
+```
+
+Kết quả: Dataset raw `speech_commands` đã được giải nén hoàn tất vào `/kaggle/working/Few-Shot-KWS/speech_commands`.
 
 ---
 
@@ -793,15 +824,9 @@ Sau patch cần reload module trước khi chạy lại.
 
 Có thể ghi ngắn gọn:
 
-> Trong quá trình tái hiện pipeline dữ liệu từ repository Few-Shot-KWS, nhóm phát hiện một lỗi phạm vi biến trong hàm tải dữ liệu. Cụ thể, source sử dụng `data_url` thay vì thuộc tính `self.data_url`, gây `NameError`. Nhóm sửa lỗi này trước khi tiếp tục tải và chuẩn bị Google Speech Commands v0.02.
+> Trong quá trình tái hiện pipeline dữ liệu từ repository Few-Shot-KWS, nhóm phát hiện một lỗi phạm vi biến trong hàm tải dữ liệu. Cụ thể, source sử dụng `data_url` thay vì thuộc tính `self.data_url`, gây `NameError`. Nhóm sửa lỗi này và sử dụng tiện ích dòng lệnh tối ưu hóa để tải và giải nén trực tiếp Google Speech Commands v0.02 hoàn tất trước khi bước vào khâu chuẩn bị dữ liệu.
 
-Không cần dành quá nhiều nội dung cho bug này.
-
-Nó nên được xem là:
-
-```text
-technical reproduction note
-```
+Không cần dành quá nhiều nội dung cho bug này. Nó nên được xem là một ghi chú kỹ thuật trong quá trình thực nghiệm (technical reproduction note).
 
 ---
 
@@ -818,22 +843,22 @@ technical reproduction note
 [x] Hiểu pipeline chuẩn bị FS-GSC
 [x] Xác định config paper
 [x] Phát hiện download bug trong repo
-[x] Xác định cách patch bug
+[x] Tải thành công GSC v0.02 bằng wget (CELL 3B-FAST)
+[x] Giải nén toàn bộ GSC v0.02 thành công (CELL 3C)
 ```
 
 Chưa hoàn thành:
 
 ```text
-[ ] Download GSC v0.02 bằng repo paper thành công
-[ ] Audit raw dataset tải trực tiếp từ paper source
-[ ] Chạy Filtering
-[ ] Đếm số file bị loại vì <1s
-[ ] Group by speaker
-[ ] Thống kê speaker / keyword
+[ ] Audit raw dataset vừa giải nén (đếm tổng WAV, classes thật)
+[ ] Chạy Filtering (Bước 1 của paper)
+[ ] Đếm số file bị loại vì <1s (so với 16000 samples)
+[ ] Group by speaker (Bước 2 của paper)
+[ ] Thống kê speaker / keyword (Bước 3)
 [ ] Xác định danh sách Core / Unknown thực tế
-[ ] Balance dataset
+[ ] Balance dataset (Bước 4)
 [ ] Xác định kích thước FS-GSC sau balance
-[ ] Xác định train / val / test classes
+[ ] Xác định train / val / test classes (Bước 5)
 [ ] Kiểm tra feature extraction của model
 [ ] Audit AudioMNIST
 [ ] Audit Fluent Speech Commands
