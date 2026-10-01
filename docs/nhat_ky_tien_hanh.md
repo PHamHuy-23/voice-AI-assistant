@@ -218,90 +218,89 @@ dataset
 
 # 6. Kết quả audit GSC V2 raw từ Kaggle
 
-Đã chạy audit nhanh và thu được:
+Đã chạy audit toàn diện trên 100% dữ liệu raw (nguồn chính thức Google Speech Commands v0.02) và thu được:
 
 ```text
 Total WAV: 105835
-Classes: 35
+Keyword classes: 35
+Readable files: 105835 (Errors: 0)
 ```
 
-Phân bố class:
+Phân bố chi tiết 35 classes theo số lượng mẫu:
 
 ```text
-five: 4052
-zero: 4052
-yes: 4044
-seven: 3998
-no: 3941
-nine: 3934
-down: 3917
-one: 3890
-two: 3880
-go: 3880
-stop: 3872
-six: 3860
-on: 3845
-left: 3801
-eight: 3787
-right: 3778
-off: 3745
-four: 3728
-three: 3727
-up: 3723
-dog: 2128
-wow: 2123
-house: 2113
-marvin: 2100
-bird: 2064
-happy: 2054
-cat: 2031
-sheila: 2022
-bed: 2014
-tree: 1759
-backward: 1664
-visual: 1592
-follow: 1579
-learn: 1575
-forward: 1557
+five: 4052      go: 3880        four: 3728      cat: 2031
+zero: 4052      stop: 3872      three: 3727     sheila: 2022
+yes: 4044       six: 3860       up: 3723        bed: 2014
+seven: 3998     on: 3845        dog: 2128       tree: 1759
+no: 3941        left: 3801      wow: 2123       backward: 1664
+nine: 3934      eight: 3787     house: 2113     visual: 1592
+down: 3917      right: 3778     marvin: 2100    follow: 1579
+one: 3890       off: 3745       bird: 2064      learn: 1575
+two: 3880                       happy: 2054     forward: 1557
 ```
 
-Audit metadata trên 2000 file:
+Thống kê kỹ thuật trên toàn bộ 105.835 file:
 
 ```text
 Sample rate:
-16000 Hz → 2000/2000
+16000 Hz → 105835/105835 (100%)
 
 Channels:
-1 → 2000/2000
+1 (Mono) → 105835/105835 (100%)
 
 Format:
-WAV → 2000/2000
+WAV (PCM_16) → 105835/105835 (100%)
 
 Errors:
 0
 ```
 
-Duration:
+Thống kê thời lượng (Duration):
 
 ```text
-count    2000
-mean     0.979532 s
-std      0.075753 s
-min      0.384000 s
-25%      1.000000 s
-50%      1.000000 s
-75%      1.000000 s
-max      1.000000 s
+count    105835.000000
+mean          0.984649 s
+std           0.508240 s
+min           0.213312 s
+25%           1.000000 s
+50%           1.000000 s
+75%           1.000000 s
+max          95.183125 s (file nhiễu nền dài nhất trong _background_noise_)
 ```
 
-Nhận xét ban đầu:
+Thống kê các file ngắn hơn 1 giây (< 1.0s):
 
-- dataset có file ngắn hơn 1 giây;
-- phần lớn file dài 1 giây;
-- sample kiểm tra đều 16 kHz;
-- sample kiểm tra đều mono;
-- format WAV;
-- không có lỗi đọc trong 2000 file đã kiểm tra.
+```text
+Files < 1.0 sec:   10435 file
+Tỷ lệ < 1.0 sec:   9.8597%
+File ngắn nhất:    0.213312 s (bed/220ee1ef_nohash_0.wav)
+```
+
+Thống kê dữ liệu Background Noise:
+
+```text
+Background WAV files: 6 file
+Thời lượng min:       60.000000 s
+Thời lượng max:       95.183125 s
+Thời lượng mean:      66.566365 s
+```
+
+Kết quả phân tích Speaker per keyword (ngưỡng speaker_limit = 1000):
+
+```text
+Core words (>= 1000 speakers): 30 từ khóa
+['down', 'seven', 'yes', 'nine', 'four', 'five', 'go', 'left', 'one', 'right',
+ 'on', 'zero', 'no', 'stop', 'three', 'six', 'eight', 'dog', 'off', 'two',
+ 'marvin', 'up', 'house', 'wow', 'bird', 'happy', 'cat', 'bed', 'sheila', 'tree']
+
+Unknown words (< 1000 speakers): 5 từ khóa
+['visual', 'learn', 'follow', 'forward', 'backward']
+(số lượng speaker của Unknown dao động từ 464 đến 515 speakers)
+```
+
+> **Phát hiện thực nghiệm quan trọng:**  
+> Mặc dù trong code paper định nghĩa tham số `core_split = (24, 5, 5)` (tức kỳ vọng $24 + 5 + 5 = 34$ core words), nhưng khi chạy phân tích thực tế trên Google Speech Commands v0.02 với điều kiện `num_speakers >= 1000`, chỉ có **30 từ khóa** đạt chuẩn Core và **5 từ khóa** là Unknown! Điều này chứng minh giá trị cốt lõi của việc chạy code thực nghiệm thật thay vì suy đoán lý thuyết.
 
 ---
 
@@ -845,20 +844,22 @@ Không cần dành quá nhiều nội dung cho bug này. Nó nên được xem l
 [x] Phát hiện download bug trong repo
 [x] Tải thành công GSC v0.02 bằng wget (CELL 3B-FAST)
 [x] Giải nén toàn bộ GSC v0.02 thành công (CELL 3C)
+[x] Audit toàn diện 100% RAW GSC v0.02 (105.835 file, 16kHz, mono, PCM_16)
+[x] Xác định số lượng file < 1.0s (10.435 file ~ 9.86%)
+[x] Xác định 6 file background noise (60.0s -> 95.18s)
+[x] Phân tích Speaker per keyword: 30 Core classes vs 5 Unknown classes
 ```
 
 Chưa hoàn thành:
 
 ```text
-[ ] Audit raw dataset vừa giải nén (đếm tổng WAV, classes thật)
-[ ] Chạy Filtering (Bước 1 của paper)
-[ ] Đếm số file bị loại vì <1s (so với 16000 samples)
+[ ] Chạy Filtering (Bước 1 của paper: xóa các file < 1.0s)
+[ ] Xác minh số lượng file còn lại sau Filtering (~95.400 file)
 [ ] Group by speaker (Bước 2 của paper)
-[ ] Thống kê speaker / keyword (Bước 3)
-[ ] Xác định danh sách Core / Unknown thực tế
-[ ] Balance dataset (Bước 4)
+[ ] Thống kê speaker / keyword sau filter
+[ ] Balance dataset (Bước 4: chọn 1 file/speaker theo speaker_limit)
 [ ] Xác định kích thước FS-GSC sau balance
-[ ] Xác định train / val / test classes (Bước 5)
+[ ] Xác định train / val / test classes thực tế (Bước 5)
 [ ] Kiểm tra feature extraction của model
 [ ] Audit AudioMNIST
 [ ] Audit Fluent Speech Commands
