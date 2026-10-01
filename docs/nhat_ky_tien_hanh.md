@@ -1096,3 +1096,35 @@ Vào ngày 01/10/2026, toàn bộ dữ liệu kiểm toán và hình ảnh thự
 Toàn bộ báo cáo đã được biên dịch thành công ra file Word đạt chuẩn học thuật tại:
 - `G:\Desktop\docs\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
 - `G:\Desktop\voice-AI-assistant\docs\report\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
+
+---
+
+# 27. Hoàn thiện Mục 3.1: Kiến trúc và quy trình hoạt động của giải pháp đề xuất
+
+Vào ngày 01/10/2026, nhóm đã hoàn thiện toàn bộ cơ sở lý thuyết, kiến trúc chi tiết và quy trình vận hành của giải pháp đề xuất trong Mục 3.1 của báo cáo giữa kỳ:
+
+### 27.1. Chuẩn hóa danh xưng kỹ thuật: TC-ResNet (Temporal Convolutional ResNet)
+- Mặc dù một số tài liệu sơ khởi sử dụng thuật ngữ TD-ResNet (Time-Delay ResNet), mã nguồn triển khai chính thức của repository `Few-Shot-KWS` định nghĩa class là `TCResNet` với các lớp tích chập 1D theo trục thời gian (Kernel 9 × 1).
+- Báo cáo và mã nguồn dự án thống nhất gọi tên chuẩn xác là **TC-ResNet** để bảo đảm tính trung thực tuyệt đối giữa lý thuyết và thực nghiệm.
+
+### 27.2. Tóm tắt 20 tiểu mục kỹ thuật (3.1.1 → 3.1.20) đã tích hợp vào Báo cáo
+1. **Đầu vào hệ thống**: 16 kHz, Mono, 1.0s, 16.000 samples, container WAV PCM_16. MFCC 40 hệ số, cửa sổ 40 ms, stride 20 ms $\rightarrow$ Tensor $[1, 51, 40]$.
+2. **TC-ResNet làm Embedding Network**: $f_\theta(x) = z \in \mathbb{R}^D$, học không gian biểu diễn cụm đặc trưng ngữ âm có khả năng phân tách cao.
+3. **Time-Channel Transformation**: Hoán vị chiều `torch.transpose(x, 1, 3)` đưa tensor sang dạng $[B, 40, 51, 1]$ để tích chập thời gian 1D tối ưu.
+4. **Kiến trúc TCResNet8**: 3 Residual blocks, các kênh `[16, 24, 32, 48]`, Conv1 kernel $3 \times 1$, Residual blocks kernel $9 \times 1$, Dilation `[1, 1, 1, 1]`.
+5. **Cấu trúc Residual Block**: Nhánh chính Conv(9×1) $\rightarrow$ BN $\rightarrow$ ReLU $\rightarrow$ Conv(9×1) $\rightarrow$ BN. Nhánh shortcut Identity hoặc Projection $1\times 1$ ($W_s x$). Kết hợp: $y = \text{ReLU}(F(x) + W_s x)$.
+6. **Average Pooling & Flatten**: Global Average Pooling theo chiều thời gian, Flatten ra vector $z \in \mathbb{R}^{48}$.
+7. **Thiết lập Few-shot Episode**: Huấn luyện $N$-way $K$-shot với $Q$ queries/class (mô phỏng nhận dạng ít mẫu trong quá trình học).
+8. **Support Set & Query Set**: `xs` và `xq` chia sẻ chung 100% trọng số của encoder TC-ResNet.
+9. **Tính toán Prototype**: $c_k = \frac{1}{K}\sum_{i=1}^K z_{k,i}$ (tâm cụm đại diện cho từng lớp từ khóa trong không gian embedding).
+10. **Phân loại Query theo Euclidean Distance**: $d(z_q, c_k) = \|z_q - c_k\|_2^2$, dự đoán theo prototype gần nhất.
+11. **Chuyển đổi sang xác suất Softmax**: $P(y=k \mid x_q) = \frac{\exp(-d(z_q, c_k))}{\sum_j \exp(-d(z_q, c_j))}$.
+12. **Hàm mất mát Loss**: Negative Log-Likelihood (NLL) trên xác suất nhãn đúng, cập nhật trọng số $\theta$ của TC-ResNet (prototype không có tham số học cố định).
+13. **Độ chính xác Accuracy**: Đánh giá tỷ lệ dự đoán chính xác qua $\arg\max$ log-xác suất trong từng episode.
+14. **Chu trình huấn luyện (Training loop)**: Adam optimizer (lr = 0.001), lặp qua các episode, lan truyền ngược và cập nhật tham số.
+15. **Lưu trữ Best Model**: Đánh giá định kỳ trên tập Validation (các từ khóa lạ), checkpoint theo Validation Loss thấp nhất.
+16. **Quy trình suy luận Few-shot (Inference)**: Freeze encoder $f_\theta$. Thêm từ khóa mới chỉ cần vài mẫu thu âm để tính prototype mới $c_{new}$, không cần tái huấn luyện mạng.
+17. **Bảng đối chiếu vai trò bổ trợ**: TC-ResNet (Trích xuất đặc trưng sâu sắc) $\leftrightarrow$ Prototypical Network (Bộ phân loại metric động không tham số).
+18. **Sơ đồ kiến trúc tổng thể Hình 3.1**: Sinh và nhúng hình vector chuẩn xuất bản `fig_17_tcresnet_protonet_architecture.png`.
+19. **Liên kết với 4 kịch bản thực nghiệm**: Baseline FS-GSC, Alternative AudioMNIST, Cross-Dataset GSC $\rightarrow$ AudioMNIST, Cross-Domain GSC $\rightarrow$ FSC.
+20. **Nhận xét tổng kết**: Đánh giá toàn diện tính ưu việt của giải pháp đề xuất, làm tiền đề vững chắc cho Mục 3.2.
