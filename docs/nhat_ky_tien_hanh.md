@@ -851,6 +851,7 @@ Không cần dành quá nhiều nội dung cho bug này. Nó nên được xem l
 [x] Audit AudioMNIST (30.000 WAVs, 10 digits 0-9, 60 speakers, 48kHz sample audit, 0.43-0.82s)
 [x] Audit Fluent Speech Commands (30.043 utterances, 97 speakers, 31 intents, 16kHz sample audit, 1.39-2.42s)
 [x] Hoàn thiện Mục 2.2 Báo cáo giữa kỳ với đầy đủ 3 dataset và bảng đối chiếu tổng hợp
+[x] Hoàn thành khung phương pháp và chính sách chuẩn hóa dữ liệu Mục 2.3 Báo cáo giữa kỳ (chờ bổ sung số liệu code thật)
 ```
 
 Chưa hoàn thành:
