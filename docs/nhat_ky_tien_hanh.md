@@ -851,21 +851,23 @@ Không cần dành quá nhiều nội dung cho bug này. Nó nên được xem l
 [x] Audit AudioMNIST (30.000 WAVs, 10 digits 0-9, 60 speakers, 48kHz sample audit, 0.43-0.82s)
 [x] Audit Fluent Speech Commands (30.043 utterances, 97 speakers, 31 intents, 16kHz sample audit, 1.39-2.42s)
 [x] Hoàn thiện Mục 2.2 Báo cáo giữa kỳ với đầy đủ 3 dataset và bảng đối chiếu tổng hợp
-[x] Hoàn thành khung phương pháp và chính sách chuẩn hóa dữ liệu Mục 2.3 Báo cáo giữa kỳ (chờ bổ sung số liệu code thật)
+[x] Chạy Filtering FS-GSC (xóa 10.435 file < 1.0s)
+[x] Group by speaker theo _nohash_ cho FS-GSC
+[x] Phân chia Core (30 classes) và Unknown (5 classes) theo speaker_limit = 1000
+[x] Balance FS-GSC theo speaker: 30 Core x 1.062 = 31.860 mẫu (mu=1062, sigma=0); 5 Unknown x 386 = 1.930 mẫu
+[x] Split FS-GSC: 20 Train classes, 5 Validation classes, 5 Test classes; Unknown (1.155 Train, 390 Val, 385 Test)
+[x] Preprocessing AudioMNIST: Resample 48k->16k, peak norm, pad/crop 1s, hoàn thành 30.000 file (0 lỗi)
+[x] Preprocessing Fluent Speech Commands: Segmentation 1s, hoàn thành 83.777 segments từ 30.043 utterances (mean=2.7886 seg/utt, 0 lỗi)
+[x] Hoàn thiện Mục 2.3 Báo cáo giữa kỳ với 100% số liệu thực nghiệm và bảng đối chiếu
 ```
 
 Chưa hoàn thành:
 
 ```text
-[ ] Chạy Filtering (Bước 1 của paper: xóa các file < 1.0s)
-[ ] Xác minh số lượng file còn lại sau Filtering (~95.400 file)
-[ ] Group by speaker (Bước 2 của paper)
-[ ] Thống kê speaker / keyword sau filter
-[ ] Balance dataset (Bước 4: chọn 1 file/speaker theo speaker_limit)
-[ ] Xác định kích thước FS-GSC sau balance
-[ ] Xác định train / val / test classes thực tế (Bước 5)
-[ ] Kiểm tra feature extraction của model
-[ ] Xây raw vs processed experiment
+[ ] Kiểm tra feature extraction của model (Mục 2.4)
+[ ] Trích xuất Log Mel-spectrogram / MFCC cho mô hình
+[ ] Xây dựng thực nghiệm minh họa Raw vs Processed (Mục 2.5)
+[ ] Cài đặt mô hình TD-ResNet + ProtoNet (Chương 3)
 ```
 
 ---
