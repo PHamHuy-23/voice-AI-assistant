@@ -848,6 +848,9 @@ Không cần dành quá nhiều nội dung cho bug này. Nó nên được xem l
 [x] Xác định số lượng file < 1.0s (10.435 file ~ 9.86%)
 [x] Xác định 6 file background noise (60.0s -> 95.18s)
 [x] Phân tích Speaker per keyword: 30 Core classes vs 5 Unknown classes
+[x] Audit AudioMNIST (30.000 WAVs, 10 digits 0-9, 60 speakers, 48kHz sample audit, 0.43-0.82s)
+[x] Audit Fluent Speech Commands (30.043 utterances, 97 speakers, 31 intents, 16kHz sample audit, 1.39-2.42s)
+[x] Hoàn thiện Mục 2.2 Báo cáo giữa kỳ với đầy đủ 3 dataset và bảng đối chiếu tổng hợp
 ```
 
 Chưa hoàn thành:
@@ -861,8 +864,6 @@ Chưa hoàn thành:
 [ ] Xác định kích thước FS-GSC sau balance
 [ ] Xác định train / val / test classes thực tế (Bước 5)
 [ ] Kiểm tra feature extraction của model
-[ ] Audit AudioMNIST
-[ ] Audit Fluent Speech Commands
 [ ] Xây raw vs processed experiment
 ```
 
