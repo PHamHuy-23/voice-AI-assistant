@@ -862,12 +862,14 @@ Không cần dành quá nhiều nội dung cho bug này. Nó nên được xem l
 [x] Kiểm tra feature extraction của model (Mục 2.4): MFCC 40 coefficients, window 40ms, stride 20ms, n_fft 640, hop 320
 [x] Xác định kích thước tensor đầu vào thực tế cho TD-ResNet: [1, 51, 40] tương ứng (1 channel x 51 time frames x 40 MFCCs)
 [x] Hoàn thiện Mục 2.4 Báo cáo giữa kỳ với đầy đủ cơ sở lý thuyết, công thức toán và cấu hình thực tế
+[x] Xây dựng thực nghiệm minh họa Raw vs Processed (Mục 2.5): đo đạc số liệu Peak, RMS, Duration trên 5 mẫu đại diện
+[x] Tích hợp toàn bộ bộ ảnh trực quan hóa waveform, spectrogram, mel-spec, mfcc song song cho 3 dataset (Hình 2.6 -> 2.13)
+[x] Hoàn thiện 100% Chương 2 (Dữ liệu và đặc trưng tiếng nói) trong Báo cáo giữa kỳ
 ```
 
 Chưa hoàn thành:
 
 ```text
-[ ] Xây dựng thực nghiệm minh họa Raw vs Processed (Mục 2.5)
 [ ] Cài đặt mô hình TD-ResNet + ProtoNet (Chương 3)
 ```
 
