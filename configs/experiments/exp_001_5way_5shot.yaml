@@ -1,0 +1,29 @@
+experiment_id: "exp_001_5way_5shot"
+description: "Baseline Few-Shot Keyword Spotting using TD-ResNet and Prototypical Network on FS-GSC (5-way 5-shot)"
+random_seed: 42
+
+data_config: "configs/data/gsc.yaml"
+preprocessing_config: "configs/preprocessing/normalized.yaml"
+model_config: "configs/model/td_resnet.yaml"
+protonet_config: "configs/model/prototypical.yaml"
+
+training:
+  epochs: 50
+  episodes_per_epoch: 100
+  val_episodes: 50
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  lr_scheduler: "step"
+  lr_step_size: 15
+  lr_gamma: 0.5
+  device: "cuda" # Automatically falls back to cpu if cuda unavailable
+  save_checkpoint_dir: "checkpoints/exp_001"
+  log_interval: 10
+
+evaluation:
+  test_episodes: 200
+  eval_configurations:
+    - { n_way: 5, k_shot: 1, n_query: 5 }
+    - { n_way: 5, k_shot: 5, n_query: 5 }
+    - { n_way: 10, k_shot: 1, n_query: 5 }
+    - { n_way: 10, k_shot: 5, n_query: 5 }

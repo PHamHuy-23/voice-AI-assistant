@@ -1,0 +1,16 @@
+# Mode: RAW
+# Decode audio with minimal intervention necessary for model ingestion
+mode: "raw"
+
+pipeline:
+  to_mono: false
+  resample: false
+  trim_silence: false
+  normalize_amplitude: false
+  pad_or_crop: true # Minimum requirement to ensure uniform batch/tensor shape
+
+target_sample_rate: 16000
+target_length_samples: 16000 # 1.0 second at 16kHz
+silence_threshold_db: 20.0
+norm_type: "peak" # "peak", "rms", or "none"
+target_peak: 0.95

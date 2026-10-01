@@ -1,0 +1,18 @@
+# Mode: NORMALIZED
+# Full audio normalization pipeline for speech enhancement & stabilization
+mode: "normalized"
+
+pipeline:
+  to_mono: true
+  resample: true
+  trim_silence: true
+  normalize_amplitude: true
+  pad_or_crop: true
+
+target_sample_rate: 16000
+target_length_samples: 16000 # 1.0 second at 16kHz
+silence_threshold_db: 20.0
+norm_type: "peak" # "peak", "rms"
+target_peak: 0.95
+pad_mode: "constant" # "constant" (zero padding) or "reflect"
+pad_position: "center" # "center" or "end"

@@ -1,0 +1,53 @@
+dataset_name: "Google Speech Commands v2"
+alias: "FS-GSC"
+data_dir: "data/raw/speech_commands_v2"
+processed_dir: "data/processed/gsc"
+sample_rate: 16000
+audio_duration: 1.0 # seconds
+file_extension: ".wav"
+
+# Class partition for Few-Shot Keyword Spotting
+# 35 total classes partitioned strictly into disjoint sets:
+# 15 Train classes / 10 Validation classes / 10 Test classes
+splits:
+  train_classes:
+    - "happy"
+    - "house"
+    - "bird"
+    - "bed"
+    - "backward"
+    - "sheila"
+    - "marvin"
+    - "wow"
+    - "tree"
+    - "follow"
+    - "dog"
+    - "visual"
+    - "forward"
+    - "learn"
+    - "cat"
+  val_classes:
+    - "zero"
+    - "one"
+    - "two"
+    - "three"
+    - "four"
+    - "five"
+    - "six"
+    - "seven"
+    - "eight"
+    - "nine"
+  test_classes:
+    - "yes"
+    - "no"
+    - "up"
+    - "down"
+    - "left"
+    - "right"
+    - "on"
+    - "off"
+    - "stop"
+    - "go"
+
+special_folders:
+  - "_background_noise_"

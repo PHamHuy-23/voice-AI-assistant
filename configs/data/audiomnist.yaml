@@ -1,0 +1,9 @@
+dataset_name: "AudioMNIST"
+alias: "AUDIOMNIST"
+data_dir: "data/external/audiomnist"
+processed_dir: "data/processed/audiomnist"
+sample_rate: 48000 # Original AudioMNIST sample rate
+target_sample_rate: 16000
+role: "supplementary_single_word"
+description: "Supplementary spoken digits dataset (0-9) used for verifying preprocessing pipelines and cross-dataset testing."
+is_primary_benchmark: false

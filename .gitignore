@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / C-extensions
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyTorch checkpoints and models
+*.pt
+*.pth
+checkpoints/*
+!checkpoints/.gitkeep
+experiments/*
+!experiments/.gitkeep
+
+# Datasets and large raw audio files
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
+*.wav
+*.mp3
+*.flac
+*.tar.gz
+*.zip
+
+# Generated Reports and Figures (Keep directory structure)
+reports/data_audit/*
+!reports/data_audit/.gitkeep
+reports/figures/*
+!reports/figures/.gitkeep
+reports/figures/embeddings/*
+!reports/figures/embeddings/.gitkeep
+reports/tables/*
+!reports/tables/.gitkeep
+reports/results/*
+!reports/results/.gitkeep
+
+# Environments & OS specific
+.venv/
+venv/
+env/
+ENV/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log

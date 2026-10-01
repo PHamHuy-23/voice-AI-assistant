@@ -1,0 +1,27 @@
+# Core Machine Learning & Deep Learning
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# Audio Signal Processing
+librosa>=0.10.1
+soundfile>=0.12.1
+scipy>=1.11.0
+
+# Data Analysis & Numerical Computation
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0
+
+# Visualization & Reporting
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Dimensionality Reduction (Embedding Visualization)
+scikit-learn>=1.3.0
+umap-learn>=0.5.4
+
+# Configuration & Utilities
+pyyaml>=6.0.1
+tqdm>=4.66.0
+
+# Audio capture & Demo (Optional for local mic testing)
+pyaudio>=0.2.14; platform_system == "Windows" or platform_system == "Linux"

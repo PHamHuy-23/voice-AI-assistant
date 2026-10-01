@@ -1,0 +1,9 @@
+dataset_name: "Fluent Speech Commands"
+alias: "FSC"
+data_dir: "data/external/fluent_speech_commands"
+processed_dir: "data/processed/fsc"
+sample_rate: 16000
+role: "supplementary_spoken_commands"
+description: "Supplementary multi-word spoken command / intent classification dataset. Used for testing preprocessing on longer signals and intent-level commands."
+is_primary_benchmark: false
+is_multi_keyword_spotting: false # Explicit flag: do not misclassify spoken intent as simple KWS

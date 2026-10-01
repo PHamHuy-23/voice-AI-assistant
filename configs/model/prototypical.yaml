@@ -1,0 +1,14 @@
+model_name: "Prototypical Network"
+algorithm: "ProtoNet"
+
+distance_metric: "euclidean" # "euclidean" or "cosine"
+temperature: 1.0
+
+# Few-shot Episodic Learning parameters
+episodic:
+  n_way: 5
+  k_shot: 5
+  n_query: 5
+  val_n_way: 5
+  val_k_shot: 5
+  val_n_query: 5

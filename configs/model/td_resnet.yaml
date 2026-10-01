@@ -1,0 +1,26 @@
+model_name: "TD-ResNet"
+architecture: "Temporal Dilated Residual Network"
+
+# Speech Feature extraction input parameters
+features:
+  feature_type: "melspectrogram" # "melspectrogram" or "mfcc"
+  sample_rate: 16000
+  n_fft: 1024
+  win_length: 400 # 25ms window at 16kHz
+  hop_length: 160 # 10ms hop at 16kHz
+  n_mels: 64
+  n_mfcc: 40
+  f_min: 20
+  f_max: 8000
+  power: 2.0
+  log_mel: true
+
+# TD-ResNet Network Architecture
+backbone:
+  in_channels: 1 # Single channel spectrogram
+  base_channels: 32
+  num_blocks: [2, 2, 2] # Residual stages
+  kernel_size: 3
+  dilation_rates: [1, 2, 4] # Dilated temporal convolutions
+  dropout: 0.1
+  embedding_dim: 128 # Output embedding vector dimension f_theta(x)
