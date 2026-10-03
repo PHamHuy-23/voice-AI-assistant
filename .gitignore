@@ -49,3 +49,7 @@ Thumbs.db
 
 # AI Development OS Memory Bank
 .ai/
+
+# Backup files
+*.bak
+

@@ -1162,3 +1162,108 @@ Vào ngày 01/10/2026, nhóm đã hoàn tất quá trình cài đặt, vá lỗi
 - Sinh và nhúng hình vector **Hình 3.2** (`fig_18_smoke_test_pipeline.png`).
 - Toàn bộ nội dung đã được biên dịch vào Báo cáo giữa kỳ tại cả 2 đường dẫn.
 
+
+---
+
+# 29. Hoàn thiện Mục 3.4: Kết quả thực nghiệm bước đầu và các quy luật học thuật
+
+Vào ngày 02/10/2026, nhóm đã tổng hợp và phân tích định lượng toàn diện kết quả thực nghiệm từ 51/160 cấu hình đã hoàn thành trong quá trình tái hiện nghiên cứu gốc trên hệ thống 2 GPU Tesla T4:
+
+### 29.1. Thống kê tiến độ thực nghiệm
+- Tổng số cấu hình trong không gian đầy đủ: $4 \times 5 \times 8 = 160$ cấu hình.
+- Đã hoàn thành và lưu vết: **51 / 160 cấu hình** ($\approx 31,9\%$).
+- Trọn vẹn 40 cấu hình của không gian 2-way (đầy đủ các shot 1, 5, 10, 15, 20 và 8 tổ hợp môi trường Background / Silence / Unknown).
+- 8 cấu hình của 3-way 1-shot và 3 cấu hình của 3-way 5-shot.
+- Lưu trữ đầy đủ 4 tệp kiểm định chuẩn cho từng thí nghiệm: `best_model.pt`, `opt.json`, `trace.txt`, `eval.txt`.
+
+### 29.2. Bảng 12 thực nghiệm tiêu biểu
+- Chọn lọc 12 mốc cấu hình đại diện phản ánh sự biến thiên của Way, Shot và điều kiện môi trường.
+- Baseline 2-way 1-shot Clean đạt $85.40\% \pm 2.75\%$ (Loss $0.3220$).
+- 2-way 5-shot Clean đạt $92.67\% \pm 1.74\%$ (Loss $0.1778$).
+- Đỉnh hiệu năng đạt được tại 2-way 15-shot: $95.40\% \pm 1.07\%$ (Loss $0.1240$).
+- Môi trường thực tế Assistant (đầy đủ Nhiễu + Silence + Unknown): đạt $78.17\%$ ở 1-shot, $87.67\%$ ở 5-shot và $90.32\%$ ở 20-shot.
+
+### 29.3. Bốn quy luật thực nghiệm và phát hiện học thuật cốt lõi
+1. **Quy luật bão hòa số lượng mẫu (K-shot Saturation)**: Bước nhảy từ 1-shot lên 5-shot mang lại mức tăng trưởng mạnh nhất ($+7.27\%$), đạt đỉnh ở 15-shot ($95.40\%$) và bão hòa tại 20-shot ($95.23\%$). Khẳng định người dùng chỉ cần thu âm $3 \div 5$ mẫu là đủ để mô hình đạt độ chính xác tối ưu (>92.6%).
+2. **Hiện tượng "Bẫy khoảng lặng" (Silence Trap) và Cơ chế bù trừ của Unknown Class**: Thêm Silence đơn lẻ khiến độ chính xác 1-shot sụt giảm nghiêm trọng xuống $66.20\%$ (giảm $-19.20\%$). Tuy nhiên khi kết hợp đồng thời Silence và Unknown, độ chính xác phục hồi mạnh lên $80.10\%$ ($+13.90\%$) nhờ mạng học được không gian phân tách rõ ràng 3 miền.
+3. **Tính bền bỉ trước nhiễu nền (Background Noise Robustness)**: Background Noise đóng vai trò như một bộ điều chuẩn âm học (Regularization), duy trì độ chính xác trung bình $92.30\%$ (so với $92.71\%$ của Clean).
+4. **Quy luật suy giảm theo số lớp (N-way Scale Drop) và Khả năng bù đắp bằng K-shot**: Chênh lệch giữa 2-way và 3-way ở mức 1-shot là $-7.73\%$, nhưng nhanh chóng thu hẹp chỉ còn $-1.98\%$ khi nâng lên 5-shot ($92.67\%$ vs $90.69\%$).
+
+### 29.4. Sinh đồ thị trực quan
+- Sinh và nhúng đồ thị chuẩn xuất bản **Hình 3.3** (`fig_19_interim_experimental_results.png`) gồm 2 phân đồ thị: (a) Đường cong bão hòa K-shot; (b) Biểu đồ cột so sánh các điều kiện môi trường giữa 1-shot và 5-shot.
+
+---
+
+# 30. Hoàn thiện Mục 3.5: Xây dựng và kiểm thử bản Demo Voice AI Assistant giữa kỳ
+
+Vào ngày 02/10/2026, nhóm đã hoàn thành việc thiết kế kịch bản, triển khai mã nguồn và chạy kiểm thử thực tế bản Demo chức năng của hệ thống Trợ lý ảo điều khiển bằng giọng nói ít mẫu:
+
+### 30.1. Kiến trúc 3 tầng hoàn chỉnh
+- **Tầng 1 (Enrollment)**: Đăng ký khẩu lệnh tùy biến bằng 3 mẫu thu âm hỗ trợ, trích xuất đặc trưng và tính vector tâm cụm Prototype $c_k \in \mathbb{R}^{48}$. Thời gian đăng ký 4 từ khóa chỉ mất **36.64 ms**.
+- **Tầng 2 (Inference Engine)**: Suy luận thời gian thực qua khoảng cách Euclidean và phân bố xác suất Softmax. Tích hợp cơ chế kiểm soát biên metric ($d_{\max} = 1.10$) để loại bỏ tạp âm và từ ngoài từ điển OOV.
+- **Tầng 3 (Action Dispatcher)**: Ánh xạ kết quả nhận diện sang lệnh điều khiển hệ điều hành Windows.
+
+### 30.2. Kết quả đo đạc kiểm thử thực tế (kịch bản 5 ca)
+- `query_open_browser.wav` $\rightarrow$ `OPEN_BROWSER` (Độ tin cậy $95.3\%$, Trễ $3.03\text{ ms}$, Lệnh: mở Web browser).
+- `query_open_notepad.wav` $\rightarrow$ `OPEN_NOTEPAD` (Độ tin cậy $98.7\%$, Trễ $2.40\text{ ms}$, Lệnh: mở notepad.exe).
+- `query_stop_task.wav` $\rightarrow$ `STOP_TASK` (Độ tin cậy $96.0\%$, Trễ $2.95\text{ ms}$, Lệnh: gửi tín hiệu ngắt).
+- `query_system_mute.wav` $\rightarrow$ `SYSTEM_MUTE` (Độ tin cậy $100.0\%$, Trễ $1.96\text{ ms}$, Lệnh: đảo trạng thái âm lượng).
+- `query_unknown.wav` $\rightarrow$ `UNKNOWN_REJECTED` (Độ tin cậy $69.1\% < 75\%$, Khoảng cách $d = 1.3890 > 1.10$, Trễ $1.67\text{ ms}$, Kích hoạt cơ chế từ chối báo động giả).
+
+### 30.3. Nhúng sơ đồ kiến trúc & Biên dịch hoàn chỉnh báo cáo Word
+- Sinh và nhúng sơ đồ kiến trúc **Hình 3.4** (`fig_20_demo_assistant_flow.png`).
+- Mã nguồn kiểm thử demo độc lập được lưu trữ và vận hành tại: `demo/run_desktop_demo.py`.
+- Toàn bộ Báo cáo giữa kỳ đã được biên dịch hoàn tất đạt kích thước **9.36 MB** tại:
+  - `G:\Desktop\docs\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
+  - `G:\Desktop\voice-AI-assistant\docs\report\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
+
+---
+
+# 31. Ghi nhận thực nghiệm Live Microphone Desktop App & Các thách thức kỹ thuật cốt lõi
+
+Vào ngày 02/10/2026, nhóm đã tiến hành phát triển và thử nghiệm giao diện đồ họa Desktop App (`demo/app_gui.py`) nhằm kiểm tra khả năng nhận diện thời gian thực qua Microphone máy tính. Quá trình kiểm thử đã mang lại những bài học kinh nghiệm và phát hiện kỹ thuật mang tính thực tiễn cao:
+
+### 31.1. Thực trạng nhận diện qua Microphone thực tế
+- Khi chạy kiểm thử trên tập dữ liệu benchmark FS-GSC (file WAV chuẩn phòng thu, cắt đúng 1.0 giây), mô hình TC-ResNet8 Dilated đạt độ chính xác rất cao ($95.40\% \pm 1.07\%$ ở Exp 025).
+- Tuy nhiên, khi đưa vào thu âm trực tiếp qua Microphone máy tính người dùng trong phòng thực tế:
+  - Tỉ lệ nhận diện sai còn cao, độ ổn định chưa đạt mức sản phẩm thương mại hoàn chỉnh.
+  - Mô hình gặp khó khăn trong việc phân biệt rõ ràng giữa các khẩu lệnh tiếng Việt tự phát và tạp âm môi trường.
+
+### 31.2. Phân tích nguyên nhân kỹ thuật chuyên sâu
+1. **Lệch miền dữ liệu (Domain & Language Mismatch)**:
+   - Backbone TC-ResNet8 được huấn luyện trên 35 từ khóa tiếng Anh đơn âm tiết của Google Speech Commands (ví dụ: `yes`, `no`, `stop`, `go`...).
+   - Khi người dùng thử nghiệm bằng khẩu lệnh tiếng Việt (từ ghép nhiều âm tiết, có thanh điệu như sắc, huyền, hỏi, ngã, nặng), không gian biểu diễn MFCC bị lệch pha so với các bộ lọc trọng số mà mạng đã học.
+2. **Vấn đề căn chỉnh thời gian (Temporal Alignment & Segmentation)**:
+   - Mạng TC-ResNet8Dilated xử lý ma trận đặc trưng cố định $[1, 51, 40]$ tương ứng đúng $1.0\text{ s}$ ($16,000$ mẫu).
+   - Khi người dùng nói tự nhiên qua micro, thời điểm bắt đầu phát âm (onset) và kết thúc (offset) có thể lệch từ $0.2 \div 0.6\text{ s}$. Cơ chế cắt/pad tĩnh hoặc căn đỉnh năng lượng thô sơ chưa đủ bù đắp độ co giãn thời gian của giọng nói thật.
+3. **Độ nhạy của khoảng cách Euclidean trong Metric Space**:
+   - Khoảng cách Euclidean $d(z_q, c_k) = \|z_q - c_k\|_2^2$ phụ thuộc nhiều vào mức gain micro, khoảng cách miệng tới mic, tiếng vọng phòng (reverberation). Khoảng cách nội lớp ($d_{within}$) biến thiên từ $1.1 \div 5.0$, khiến việc thiết lập một ngưỡng từ chối tĩnh (Static Rejection Threshold) rất dễ dẫn đến sai sót loại I (báo động giả) hoặc sai sót loại II (bỏ sót lệnh).
+
+### 31.3. Định hướng học thuật & Giải pháp cho giai đoạn Cuối kỳ
+- **Chiến lược báo cáo Giữa kỳ**: Trình bày minh bạch và trung thực: phần Demo giữa kỳ sử dụng kịch bản kiểm thử đo đạc chuẩn (`demo/run_desktop_demo.py`) với các file âm thanh kiểm chuẩn để đảm bảo tính lặp lại (reproducibility) và số liệu tin cậy cho hội đồng chấm điểm.
+- **Nhiệm vụ trọng tâm Cuối kỳ**:
+  1. Tích hợp mô-đun phát hiện tiếng nói nâng cao (**Silero VAD** hoặc **WebRTC VAD**) để cắt đúng khung chứa từ khóa trước khi nạp vào mạng nơ-ron.
+  2. Áp dụng kỹ thuật co dãn thời gian động (**Dynamic Time Warping - DTW**) kết hợp với Prototypical Networks để xử lý tốc độ nói không đồng nhất.
+  3. Huấn luyện thích ứng (Domain Adaptation / Meta-Learning) trên tập âm vị tiếng Việt ngắn hạn.
+
+
+---
+
+# 32. Tích hợp mã nguồn Kaggle và Cập nhật 100% Thực nghiệm vào Báo cáo giữa kỳ
+
+Vào ngày 03/10/2026, nhóm đã hoàn tất việc trích xuất, chuẩn hóa mã nguồn từ sổ tay Kaggle (`data/dataset (1).ipynb`), bổ sung toàn bộ Mục 3.3 (Hiện thực hóa mã nguồn hệ thống) và cập nhật toàn diện Mục 3.4 (Kết quả thực nghiệm và đối sánh với công bố gốc) vào Báo cáo giữa kỳ chính thức:
+
+### 32.1. Bổ sung Mục 3.3: Hiện thực hóa mã nguồn hệ thống trên môi trường Kaggle GPU
+- **3.3.1. Chuẩn hóa âm học**: Trình bày chi tiết mã nguồn `to_mono`, `resample_audio` (scipy polyphase), `peak_normalize` và `fix_length` (center padding/cropping 16.000 samples).
+- **3.3.2. Đường ống chuẩn bị FS-GSC**: Mã nguồn 6 bước lọc độ dài, gom nhóm speaker, phân loại Core/Unknown, cân bằng mẫu và chia tập Train/Val/Test.
+- **3.3.3. Trích xuất MFCC**: Triển khai `SpeechFeatureExtractor` bằng Torchaudio MFCC (window 40ms, hop 20ms, n_mels 40) tạo ma trận tensor $[1, 51, 40]$.
+- **3.3.4. Kiến trúc TC-ResNet8 Dilated**: Cài đặt lớp `ConvBlock`, `TCResBlock` với shortcut projection và `TCResNet8Dilated` (64.560 tham số, ánh xạ $[B, 1, 51, 40] \rightarrow \mathbf{z} \in \mathbb{R}^{48}$).
+- **3.3.5. Prototypical Networks**: Triển khai tính tâm cụm $c_k = \frac{1}{K}\sum z_i$, khoảng cách Euclidean $d(z_q, c_k) = \|z_q - c_k\|_2^2$ và hàm mất mát NLL qua Log-Softmax.
+- **3.3.6. Điều phối thực nghiệm**: Cài đặt lớp `ExperimentQueueRunner` tự động hóa quét ma trận tham số, chạy tiến trình nền, lưu checkpoint `best_model.pt`, lịch sử `trace.txt` và đánh giá `eval.txt`.
+
+### 32.2. Nâng cấp Mục 3.4: Báo cáo kết quả 160/160 thực nghiệm và Đối sánh công bố gốc
+- Cập nhật số liệu thực tế **160 / 160 cấu hình hoàn thành 100%** (tiêu tốn 30,3 giờ GPU liên tục).
+- Bổ sung 3 bảng ma trận đo đạc: Bảng 3.1 (Clean Benchmark qua 4 Way × 5 Shot), Bảng 3.2 (Môi trường Trợ lý ảo thực tế BG + Silence + Unknown), Bảng 3.3 (Xếp hạng 8 điều kiện môi trường).
+- Phân tích sâu 4 quy luật: Bù đắp $N$-way bằng $K$-shot, Bẫy khoảng lặng và sự bù trừ của Unknown, Tính bền bỉ trước nhiễu nền, Điểm bão hòa phụ thuộc số lớp.
+- Bổ sung Bảng 3.4 đối chiếu 12 tiêu chí giữa kết quả tái hiện và công bố gốc của Parnami & Lee (*arXiv:2007.14463*).
+- Cập nhật đồng bộ vào cả 2 tệp báo cáo Word tại `docs/report/` và `G:\Desktop\docs\`.
