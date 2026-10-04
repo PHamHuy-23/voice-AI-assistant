@@ -15,7 +15,7 @@
   - **Mục 3.5 (Demo các chức năng cơ bản giữa kỳ)**: Hoàn thành 100% (Kiến trúc 3 tầng Enrollment -> Inference Engine -> Action Dispatcher; Độ trễ suy luận siêu thấp 1.67-3.03 ms; Đăng ký 4 từ khóa trong 36.64 ms; Cơ chế kiểm soát biên $d_{max}=1.10$ loại bỏ 100% OOV/nhiễu; Điều khiển Windows: Notepad, Browser, Mute, Stop; hình vector 3.4).
 
 ### 🏆 Các mô hình tiêu biểu (Checkpoints xác thực từ 160 cấu hình)
-Dữ liệu lưu tại `data/paper_reproduction_109of160_20261002_1643/results/` và `docs/reproduction_160_experiments.csv`:
+Dữ liệu lưu tại `experiments/runs/paper_reproduction_109of160_20261002_1643/results/` và `reports/tables/reproduction_160_experiments.csv`:
 - **Đỉnh cao toàn cục (Clean)**:
   - `exp_025` (2-way 15-shot): Acc $95.40\% \pm 1.07\%$, Loss $0.1240$
   - `exp_033` (2-way 20-shot): Acc $95.23\% \pm 1.01\%$, Loss $0.1312$
@@ -43,17 +43,17 @@ Dữ liệu lưu tại `data/paper_reproduction_109of160_20261002_1643/results/`
 ## Deliverables & Artifacts Hoàn Thành
 - **Báo cáo giữa kỳ (Word .docx)**: File chuẩn academic hoàn chỉnh (~9.36 MB, bao gồm toàn bộ Chương 1, 2, 3 từ 3.1 đến 3.5) tại:
   - `G:\Desktop\docs\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
-  - `G:\Desktop\voice-AI-assistant\docs\report\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
+  - `G:\Desktop\voice-AI-assistant\docs\reports\midterm\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
 - **Dữ liệu thực nghiệm & Bảng số liệu**:
-  - `docs/reproduction_160_experiments.csv`: Đầy đủ 160 cấu hình chi tiết.
-  - `data/paper_reproduction_109of160_20261002_1643/`: Checkpoint và log của 109 thí nghiệm bổ sung.
-  - `data/paper_reproduction_51of160_20261001_1952/`: Checkpoint và log của 51 thí nghiệm ban đầu.
+  - `reports/tables/reproduction_160_experiments.csv`: Đầy đủ 160 cấu hình chi tiết.
+  - `experiments/runs/paper_reproduction_109of160_20261002_1643/`: Checkpoint và log của 109 thí nghiệm bổ sung.
+  - `experiments/runs/paper_reproduction_51of160_20261001_1952/`: Checkpoint và log của 51 thí nghiệm ban đầu.
 - **Mã nguồn hệ thống & Demo**:
   - `scripts/update_report_section_33_34.py`: Script tự động chèn mục 3.3 và 3.4 vào báo cáo.
   - `scripts/find_best_model.py`: Script truy vấn top mô hình và kiểm định checkpoint.
   - `demo/run_desktop_demo.py`: Kịch bản demo kiểm thử tự động & tương tác điều khiển Windows (5 ca thử nghiệm).
   - `demo/app_gui.py`: Giao diện Desktop GUI VoiceLink AI.
-  - `docs/nhat_ky_tien_hanh.md`: Cập nhật đầy đủ từ mục #1 đến mục #32.
+  - `docs/logs/nhat_ky_tien_hanh.md`: Cập nhật đầy đủ từ mục #1 đến mục #32.
 
 ## Next Steps (Giai đoạn Cuối kỳ)
 1. Tiến hành thực nghiệm mở rộng: Cross-dataset trên AudioMNIST và Cross-domain trên Fluent Speech Commands.

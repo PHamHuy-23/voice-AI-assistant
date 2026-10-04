@@ -8,8 +8,7 @@ __pycache__/
 *.pth
 checkpoints/*
 !checkpoints/.gitkeep
-experiments/*
-!experiments/.gitkeep
+!checkpoints/tcresnet8_clean_weights.pt
 
 # Datasets and large raw audio files
 data/raw/*
@@ -24,17 +23,11 @@ data/external/*
 *.tar.gz
 *.zip
 
-# Generated Reports and Figures (Keep directory structure)
-reports/data_audit/*
-!reports/data_audit/.gitkeep
-reports/figures/*
-!reports/figures/.gitkeep
-reports/figures/embeddings/*
-!reports/figures/embeddings/.gitkeep
-reports/tables/*
-!reports/tables/.gitkeep
-reports/results/*
-!reports/results/.gitkeep
+# Temporary exports (curated report artifacts remain versioned)
+reports/tmp/
+demo/codex_runs/
+demo/action_cache/
+tests/tmp*/
 
 # Environments & OS specific
 .venv/
@@ -52,4 +45,3 @@ Thumbs.db
 
 # Backup files
 *.bak
-

@@ -41,15 +41,18 @@ if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
 from src.models.tc_resnet8 import TCResNet8, load_trained_tcresnet8
+from demo.codex_runner import CodexRunResult, CodexRunner
+from demo.antigravity_runner import AntigravityChatSession
 
 CHECKPOINT_PATH = os.path.join(PROJECT_ROOT, "checkpoints", "tcresnet8_clean_weights.pt")
 KEYWORDS_DIR = os.path.join(DEMO_DIR, "user_keywords")
 METADATA_FILE = os.path.join(KEYWORDS_DIR, "metadata.json")
+CODEX_LOG_DIR = os.path.join(DEMO_DIR, "codex_runs")
 os.makedirs(KEYWORDS_DIR, exist_ok=True)
 
 # Theme configuration
 ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+ctk.set_default_color_theme("dark-blue")
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +144,8 @@ class FewShotEngine:
         self.ambient_noise_rms = 0.050
         self.speech_trigger_rms = 0.095
         self.min_similarity_threshold = 0.70
+        self.min_winner_margin = 0.04
+        self.prototype_thresholds: Dict[str, float] = {}
 
         self.update_prototypes()
 
@@ -182,6 +187,7 @@ class FewShotEngine:
 
     def update_prototypes(self):
         self.prototypes.clear()
+        self.prototype_thresholds.clear()
         if not os.path.exists(KEYWORDS_DIR):
             return
 
@@ -199,6 +205,12 @@ class FewShotEngine:
                 proto = cat_embs.mean(dim=0, keepdim=True)
                 proto = F.normalize(proto, p=2, dim=-1)
                 self.prototypes[kw] = proto
+                enrollment_sims = torch.matmul(cat_embs, proto.T).flatten()
+                # Use a robust low percentile so one bad extra recording cannot
+                # make the command accept almost everything.
+                low_percentile = torch.quantile(enrollment_sims, 0.10)
+                calibrated = float(low_percentile.item()) - 0.025
+                self.prototype_thresholds[kw] = min(0.95, max(0.88, self.min_similarity_threshold, calibrated))
 
     def classify_audio(self, audio_data: np.ndarray) -> Dict[str, any]:
         if not self.prototypes:
@@ -231,6 +243,9 @@ class FewShotEngine:
 
             best_kw = max(sims, key=sims.get)
             max_sim = sims[best_kw]
+            ordered_sims = sorted(sims.values(), reverse=True)
+            runner_up_sim = ordered_sims[1] if len(ordered_sims) > 1 else None
+            winner_margin = max_sim - runner_up_sim if runner_up_sim is not None else None
             latency_ms = (time.perf_counter() - t0) * 1000.0
 
             if noise_sim > max_sim and noise_sim > 0.65:
@@ -246,13 +261,20 @@ class FewShotEngine:
             sum_exp = sum(exp_vals.values())
             conf_pct = (exp_vals[best_kw] / sum_exp) * 100.0 if sum_exp > 0 else 0.0
 
-            is_match = (max_sim >= self.min_similarity_threshold)
+            required_similarity = self.prototype_thresholds.get(best_kw, self.min_similarity_threshold)
+            similarity_ok = max_sim >= required_similarity
+            required_margin = 0.02 if max_sim >= 0.98 else self.min_winner_margin
+            margin_ok = winner_margin is None or winner_margin >= required_margin
+            is_match = similarity_ok and margin_ok
 
             return {
                 "status": "OK",
                 "is_match": is_match,
                 "best_keyword": best_kw,
                 "similarity": max_sim,
+                "required_similarity": required_similarity,
+                "winner_margin": winner_margin,
+                "required_margin": required_margin,
                 "confidence": conf_pct,
                 "latency_ms": latency_ms,
                 "rms": rms,
@@ -315,12 +337,12 @@ class AddCommandDialog(ctk.CTkToplevel):
         )
         self.entry_name.pack(fill="x", padx=16, pady=(0, 10))
 
-        lbl_desc = ctk.CTkLabel(form_frame, text="MÔ TẢ HÀNH ĐỘNG (DESCRIPTION / ACTION):", font=ctk.CTkFont(size=11, weight="bold"), text_color="#cbd5e1")
+        lbl_desc = ctk.CTkLabel(form_frame, text="YÊU CẦU GỬI CHO CODEX CLI (PROMPT / ACTION):", font=ctk.CTkFont(size=11, weight="bold"), text_color="#cbd5e1")
         lbl_desc.pack(anchor="w", padx=16, pady=(4, 4))
 
         self.entry_desc = ctk.CTkEntry(
             form_frame,
-            placeholder_text="Ví dụ: Khởi chạy Google Chrome hoặc Gửi tín hiệu điều khiển",
+            placeholder_text="Ví dụ: Kiểm tra dự án, sửa lỗi test và ghi lại kết quả",
             height=38,
             font=ctk.CTkFont(size=13)
         )
@@ -473,8 +495,14 @@ class AddCommandDialog(ctk.CTkToplevel):
 
     def _save_command(self):
         cmd_name = self.entry_name.get().strip()
-        cmd_desc = self.entry_desc.get().strip() or "Hành động người dùng tùy biến"
+        cmd_desc = self.entry_desc.get().strip()
 
+        if not cmd_desc:
+            self.lbl_record_status.configure(
+                text="⚠️ Vui lòng nhập yêu cầu cụ thể để Codex thực hiện.",
+                text_color="#f59e0b"
+            )
+            return
         if not cmd_name or len(self.recorded_samples) < self.sample_target_count:
             return
 
@@ -497,6 +525,7 @@ class AddCommandDialog(ctk.CTkToplevel):
         meta[slug] = {
             "name": cmd_name,
             "description": cmd_desc,
+            "action_type": "codex",
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "samples_count": self.sample_target_count
         }
@@ -517,8 +546,8 @@ class VoiceShortcutsApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("VoiceShortcuts AI — Kháng Nhiễu 5-Shot & Lịch Sử Lệnh (Few-Shot Voice AI Assistant)")
-        self.geometry("1160x820")
+        self.title("Voice — AI Assistant")
+        self.geometry("1200x820")
         self.minsize(1040, 720)
 
         # Engine
@@ -535,6 +564,13 @@ class VoiceShortcutsApp(ctk.CTk):
         self.is_calibrating = False
         self.is_testing_manual = False
         self.is_in_background = False
+        self.codex_runner = CodexRunner(PROJECT_ROOT, CODEX_LOG_DIR)
+        self.codex_last_started = {}
+        self.codex_command_cooldown_s = 10.0
+        self.chat_session = None
+        self.chat_busy = False
+        self.chat_response_label = None
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         # Reset Timer for Card
         self.reset_timer_id = None
@@ -614,7 +650,7 @@ class VoiceShortcutsApp(ctk.CTk):
         # =====================================================================
         # LEFT SIDEBAR: Commands Management
         # =====================================================================
-        sidebar = ctk.CTkFrame(self, width=360, corner_radius=0, fg_color="#0f172a")
+        sidebar = ctk.CTkFrame(self, width=330, corner_radius=0, fg_color=("#f2f2f7", "#111111"))
         sidebar.grid(row=0, column=0, sticky="nsew")
         sidebar.grid_rowconfigure(2, weight=1)
 
@@ -622,21 +658,22 @@ class VoiceShortcutsApp(ctk.CTk):
         title_box = ctk.CTkFrame(sidebar, fg_color="transparent")
         title_box.grid(row=0, column=0, padx=20, pady=(24, 14), sticky="w")
 
-        lbl_logo = ctk.CTkLabel(title_box, text="⚡ VoiceShortcuts 5-Shot", font=ctk.CTkFont(size=19, weight="bold"), text_color="#38bdf8")
+        lbl_logo = ctk.CTkLabel(title_box, text="Voice", font=ctk.CTkFont(size=24, weight="bold"), text_color=("#111111", "#f5f5f7"))
         lbl_logo.pack(anchor="w")
 
-        lbl_sub = ctk.CTkLabel(title_box, text="TC-ResNet8 • Phản Hồi Tức Thì (K=5)", font=ctk.CTkFont(size=11), text_color="#64748b")
+        lbl_sub = ctk.CTkLabel(title_box, text="Personal AI Assistant", font=ctk.CTkFont(size=12), text_color=("#6e6e73", "#a1a1a6"))
         lbl_sub.pack(anchor="w", pady=(2, 0))
 
         # Button + Tạo Command Mới (5-Shot)
         self.btn_add_cmd = ctk.CTkButton(
             sidebar,
-            text="＋  Tạo Command Mới (5-Shot)",
+            text="＋  Command mới",
             command=self._open_add_command_dialog,
             height=44,
             corner_radius=10,
-            fg_color="#0284c7",
-            hover_color="#0369a1",
+            fg_color=("#111111", "#f5f5f7"),
+            hover_color=("#333333", "#d2d2d7"),
+            text_color=("#ffffff", "#111111"),
             font=ctk.CTkFont(size=13, weight="bold")
         )
         self.btn_add_cmd.grid(row=1, column=0, padx=20, pady=(4, 14), sticky="ew")
@@ -728,7 +765,7 @@ class VoiceShortcutsApp(ctk.CTk):
         # =====================================================================
         # RIGHT PANEL: Live Listening Monitor & Real-time Display
         # =====================================================================
-        main_panel = ctk.CTkFrame(self, fg_color="#020617")
+        main_panel = ctk.CTkFrame(self, fg_color=("#ffffff", "#000000"))
         main_panel.grid(row=0, column=1, sticky="nsew", padx=20, pady=20)
         main_panel.grid_rowconfigure(2, weight=1)
         main_panel.grid_rowconfigure(3, weight=1)
@@ -740,13 +777,40 @@ class VoiceShortcutsApp(ctk.CTk):
 
         panel_title = ctk.CTkLabel(
             header,
-            text="Trung Tâm Nhận Diện Âm Thanh Kháng Nhiễu",
-            font=ctk.CTkFont(size=18, weight="bold")
+            text="Voice Assistant",
+            font=ctk.CTkFont(size=22, weight="bold")
         )
         panel_title.pack(side="left")
 
         right_header_btns = ctk.CTkFrame(header, fg_color="transparent")
         right_header_btns.pack(side="right")
+
+        self.view_switch = ctk.CTkSegmentedButton(
+            right_header_btns,
+            values=["Voice", "Chat"],
+            command=self._show_view,
+            fg_color=("#e5e5ea", "#1c1c1e"),
+            selected_color=("#111111", "#f5f5f7"),
+            selected_hover_color=("#333333", "#d2d2d7"),
+            unselected_color=("#e5e5ea", "#1c1c1e"),
+            unselected_hover_color=("#d2d2d7", "#2c2c2e"),
+            text_color=("#111111", "#111111"),
+            font=ctk.CTkFont(size=12, weight="bold"),
+        )
+        self.view_switch.set("Voice")
+        self.view_switch.pack(side="left", padx=(0, 12))
+
+        self.btn_theme = ctk.CTkButton(
+            right_header_btns,
+            text="◐",
+            width=34,
+            height=32,
+            command=self._toggle_theme,
+            fg_color=("#e5e5ea", "#1c1c1e"),
+            hover_color=("#d2d2d7", "#2c2c2e"),
+            text_color=("#111111", "#f5f5f7"),
+        )
+        self.btn_theme.pack(side="left", padx=(0, 10))
 
         self.btn_bg_mode = ctk.CTkButton(
             right_header_btns,
@@ -908,6 +972,202 @@ class VoiceShortcutsApp(ctk.CTk):
         )
         self.lbl_hist_empty.pack(pady=18)
 
+        self.voice_frames = [vu_box, self.result_card, history_box]
+        self._build_chat_panel(main_panel)
+
+    def _build_chat_panel(self, parent):
+        self.chat_panel = ctk.CTkFrame(parent, fg_color="transparent")
+        self.chat_panel.grid(row=1, column=0, rowspan=3, sticky="nsew", padx=10, pady=(0, 2))
+        self.chat_panel.grid_rowconfigure(1, weight=1)
+        self.chat_panel.grid_columnconfigure(0, weight=1)
+
+        chat_header = ctk.CTkFrame(
+            self.chat_panel,
+            fg_color=("#f2f2f7", "#111111"),
+            corner_radius=16,
+        )
+        chat_header.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+        chat_header.grid_columnconfigure(0, weight=1)
+
+        chat_title = ctk.CTkLabel(
+            chat_header,
+            text="Antigravity",
+            font=ctk.CTkFont(size=17, weight="bold"),
+            text_color=("#111111", "#f5f5f7"),
+        )
+        chat_title.grid(row=0, column=0, padx=18, pady=(12, 1), sticky="w")
+        self.lbl_chat_status = ctk.CTkLabel(
+            chat_header,
+            text="Chưa kết nối · phiên persistent stream-json",
+            font=ctk.CTkFont(size=11),
+            text_color=("#6e6e73", "#a1a1a6"),
+        )
+        self.lbl_chat_status.grid(row=1, column=0, padx=18, pady=(0, 12), sticky="w")
+
+        self.switch_agent_tools = ctk.CTkSwitch(
+            chat_header,
+            text="Cho phép hành động",
+            font=ctk.CTkFont(size=11),
+            width=130,
+            progress_color=("#111111", "#f5f5f7"),
+            button_color=("#ffffff", "#111111"),
+        )
+        self.switch_agent_tools.grid(row=0, column=1, rowspan=2, padx=18, pady=12)
+
+        self.chat_messages = ctk.CTkScrollableFrame(
+            self.chat_panel,
+            fg_color=("#ffffff", "#000000"),
+            corner_radius=0,
+        )
+        self.chat_messages.grid(row=1, column=0, sticky="nsew")
+        self.chat_messages.grid_columnconfigure(0, weight=1)
+        self._add_chat_bubble(
+            "assistant",
+            "Chào bạn. Mình là Antigravity và sẽ giữ nguyên phiên trò chuyện để phản hồi nhanh hơn sau tin nhắn đầu tiên.",
+        )
+
+        composer = ctk.CTkFrame(
+            self.chat_panel,
+            fg_color=("#f2f2f7", "#1c1c1e"),
+            corner_radius=18,
+        )
+        composer.grid(row=2, column=0, sticky="ew", pady=(12, 0))
+        composer.grid_columnconfigure(0, weight=1)
+
+        self.chat_input = ctk.CTkTextbox(
+            composer,
+            height=68,
+            corner_radius=14,
+            border_width=0,
+            fg_color="transparent",
+            font=ctk.CTkFont(size=13),
+            wrap="word",
+        )
+        self.chat_input.grid(row=0, column=0, padx=(14, 6), pady=8, sticky="ew")
+        self.chat_input.bind("<Control-Return>", lambda _event: self._send_chat_message())
+
+        self.btn_chat_send = ctk.CTkButton(
+            composer,
+            text="↑",
+            width=42,
+            height=42,
+            corner_radius=21,
+            command=self._send_chat_message,
+            fg_color=("#111111", "#f5f5f7"),
+            hover_color=("#333333", "#d2d2d7"),
+            text_color=("#ffffff", "#111111"),
+            font=ctk.CTkFont(size=18, weight="bold"),
+        )
+        self.btn_chat_send.grid(row=0, column=1, padx=(4, 12), pady=12)
+        self.chat_panel.grid_remove()
+
+    def _show_view(self, value):
+        if value == "Chat":
+            for frame in self.voice_frames:
+                frame.grid_remove()
+            self.chat_panel.grid()
+            self.chat_input.focus_set()
+        else:
+            self.chat_panel.grid_remove()
+            for frame in self.voice_frames:
+                frame.grid()
+
+    def _toggle_theme(self):
+        current = ctk.get_appearance_mode().lower()
+        ctk.set_appearance_mode("light" if current == "dark" else "dark")
+
+    def _add_chat_bubble(self, role: str, text: str):
+        is_user = role == "user"
+        row = ctk.CTkFrame(self.chat_messages, fg_color="transparent")
+        row.grid(sticky="ew", padx=8, pady=5)
+        row.grid_columnconfigure(0, weight=1)
+        bubble = ctk.CTkLabel(
+            row,
+            text=text,
+            justify="left",
+            anchor="w",
+            wraplength=620,
+            font=ctk.CTkFont(size=13),
+            fg_color=(("#111111" if is_user else "#e5e5ea"), ("#f5f5f7" if is_user else "#1c1c1e")),
+            text_color=(("#ffffff" if is_user else "#111111"), ("#111111" if is_user else "#f5f5f7")),
+            corner_radius=16,
+            padx=14,
+            pady=10,
+        )
+        bubble.grid(row=0, column=0, sticky="e" if is_user else "w", padx=(100, 0) if is_user else (0, 100))
+        self.after(20, lambda: self.chat_messages._parent_canvas.yview_moveto(1.0))
+        return bubble
+
+    def _send_chat_message(self):
+        message = self.chat_input.get("1.0", "end").strip()
+        if not message or self.chat_busy:
+            return "break"
+        self.chat_input.delete("1.0", "end")
+        self._add_chat_bubble("user", message)
+        self.chat_response_label = self._add_chat_bubble("assistant", "Đang suy nghĩ…")
+        self.chat_busy = True
+        self.btn_chat_send.configure(state="disabled")
+
+        if self.chat_session is None:
+            self.chat_session = AntigravityChatSession(
+                PROJECT_ROOT,
+                allow_unattended_tools=bool(self.switch_agent_tools.get()),
+                on_event=lambda event: self.after(0, lambda e=event: self._on_chat_event(e)),
+                on_error=lambda error: self.after(0, lambda e=error: self._on_chat_error(e)),
+            )
+            self.switch_agent_tools.configure(state="disabled")
+        try:
+            self.chat_session.send(message)
+            self.lbl_chat_status.configure(text="Đang kết nối Antigravity…")
+        except Exception as exc:
+            self._on_chat_error(str(exc))
+        return "break"
+
+    @staticmethod
+    def _chat_event_text(event):
+        for key in ("text_delta", "delta", "text", "content", "message"):
+            value = event.get(key)
+            if isinstance(value, str):
+                return value
+            if isinstance(value, dict):
+                for nested in ("text", "content", "message"):
+                    if isinstance(value.get(nested), str):
+                        return value[nested]
+        return ""
+
+    def _on_chat_event(self, event):
+        event_type = str(event.get("event") or event.get("type") or "").lower()
+        if event_type in {"init", "ready", "session_started"}:
+            self.lbl_chat_status.configure(text="Đã kết nối · phiên đang hoạt động")
+            return
+        text = self._chat_event_text(event)
+        if text and self.chat_response_label is not None:
+            current = self.chat_response_label.cget("text")
+            current = "" if current == "Đang suy nghĩ…" else current
+            self.chat_response_label.configure(text=current + text)
+        if event_type in {"result", "done", "turn_completed", "completed"}:
+            self.chat_busy = False
+            self.btn_chat_send.configure(state="normal")
+            self.lbl_chat_status.configure(text="Đã kết nối · sẵn sàng")
+
+    def _on_chat_error(self, error):
+        self.chat_busy = False
+        self.btn_chat_send.configure(state="normal")
+        self.lbl_chat_status.configure(text="Mất kết nối")
+        if self.chat_response_label is not None:
+            self.chat_response_label.configure(text=f"Không thể kết nối Antigravity: {error}")
+
+    def _on_close(self):
+        if self.chat_session is not None:
+            self.chat_session.close()
+        if self.stream_handle is not None:
+            try:
+                self.stream_handle.stop()
+                self.stream_handle.close()
+            except Exception:
+                pass
+        self.destroy()
+
     def _auto_calibrate_room_noise(self):
         threading.Thread(target=self._calibration_worker, daemon=True).start()
 
@@ -1033,7 +1293,7 @@ class VoiceShortcutsApp(ctk.CTk):
 
             desc_lbl = ctk.CTkLabel(
                 card,
-                text=f"{data.get('description', '')} • 5-Shot Prototype ✓",
+                text=f"{data.get('description', '')} • {'Codex CLI' if data.get('action_type') == 'codex' else 'Chưa gán hành động'} • 5-Shot ✓",
                 font=ctk.CTkFont(size=11),
                 text_color="#94a3b8",
                 wraplength=260,
@@ -1188,6 +1448,7 @@ class VoiceShortcutsApp(ctk.CTk):
 
         cmd_name = best_kw
         cmd_desc = ""
+        meta = {}
         if os.path.exists(METADATA_FILE):
             try:
                 with open(METADATA_FILE, "r", encoding="utf-8") as f:
@@ -1243,6 +1504,7 @@ class VoiceShortcutsApp(ctk.CTk):
 
                 # Add to history feed
                 self._add_history_entry("🎯", f"KHỚP LỆNH: '{cmd_name}'", f"Tương đồng {sim * 100:.1f}% • {latency:.1f}ms", "#34d399")
+                self._trigger_codex_action(best_kw, cmd_name, cmd_desc, meta.get(best_kw, {}))
 
         else:
             # ⚠️ REJECTED: UNKNOWN WORD / WRONG COMMAND
@@ -1265,6 +1527,42 @@ class VoiceShortcutsApp(ctk.CTk):
 
         # Automatically schedule card reset after 2.5s so user knows system is ready for next command!
         self._schedule_card_reset(delay_ms=2500)
+
+    def _trigger_codex_action(self, slug: str, name: str, prompt: str, metadata: dict):
+        """Starts the configured Codex prompt once recognition is accepted."""
+        if metadata.get("action_type") != "codex" or not prompt.strip():
+            return
+
+        now = time.time()
+        last_started = self.codex_last_started.get(slug, 0.0)
+        if now - last_started < self.codex_command_cooldown_s:
+            self._add_history_entry("⏳", f"CODEX: '{name}'", "Bỏ qua kích hoạt lặp trong 10 giây", "#f59e0b")
+            return
+
+        def on_started(_slug):
+            self.codex_last_started[slug] = time.time()
+            self.after(0, lambda: self._add_history_entry("🤖", f"CODEX ĐANG CHẠY: '{name}'", prompt[:90], "#a78bfa"))
+            self.after(0, lambda: self.lbl_mic_status.configure(
+                text=f"🤖 Codex đang thực hiện: {name}", text_color="#a78bfa"
+            ))
+
+        def on_finished(result: CodexRunResult):
+            self.after(0, lambda r=result: self._on_codex_finished(name, r))
+
+        started = self.codex_runner.start(slug, prompt, on_started, on_finished)
+        if not started:
+            active = self.codex_runner.active_slug
+            self._add_history_entry("⏳", f"CODEX ĐANG BẬN: '{name}'", f"Đang xử lý lệnh {active}", "#f59e0b")
+
+    def _on_codex_finished(self, name: str, result: CodexRunResult):
+        if result.success:
+            summary = result.output.replace("\n", " ").strip()[-140:] or "Hoàn thành không có thông báo."
+            self._add_history_entry("✅", f"CODEX HOÀN THÀNH: '{name}'", summary, "#34d399")
+            self.lbl_mic_status.configure(text="🟢 Codex đã hoàn thành. Tiếp tục lắng nghe...", text_color="#10b981")
+        else:
+            detail = result.error.replace("\n", " ").strip()[-140:] or f"Mã lỗi {result.exit_code}"
+            self._add_history_entry("❌", f"CODEX THẤT BẠI: '{name}'", detail, "#ef4444")
+            self.lbl_mic_status.configure(text=f"❌ Codex lỗi. Xem log: {result.log_path}", text_color="#ef4444")
 
     def _update_noise_result(self, res: dict):
         status = res.get("status", "")

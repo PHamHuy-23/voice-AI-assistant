@@ -2,7 +2,7 @@ import os
 import glob
 import json
 
-base_dir = r"G:\Desktop\voice-AI-assistant\data\paper_reproduction_51of160_20261001_1952"
+base_dir = r"experiments\runs\paper_reproduction_51of160_20261001_1952"
 exp_dirs = sorted([d for d in os.listdir(base_dir) if d.startswith("exp_")])
 
 results = []
@@ -47,7 +47,7 @@ for exp in exp_dirs:
 print(f"Total parsed: {len(results)}")
 
 # Save to CSV
-csv_path = r"G:\Desktop\voice-AI-assistant\docs\reproduction_51_experiments.csv"
+csv_path = r"reports\tables\reproduction_51_experiments.csv"
 with open(csv_path, "w", encoding="utf-8") as f:
     f.write("exp,way,shot,bg,silence,unknown,acc_mean,acc_ci,loss_mean,loss_ci\n")
     for r in results:

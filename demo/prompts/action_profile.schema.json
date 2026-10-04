@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "intent",
+    "primary",
+    "fallbacks",
+    "verified",
+    "verification",
+    "machine_fingerprint",
+    "cache_ttl_seconds",
+    "invalidation_signals"
+  ],
+  "properties": {
+    "status": { "type": "string", "enum": ["ready", "needs_user_input", "failed"] },
+    "intent": { "type": "string", "minLength": 1 },
+    "primary": { "$ref": "#/$defs/action" },
+    "fallbacks": {
+      "type": "array",
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/action" }
+    },
+    "verified": { "type": "boolean" },
+    "verification": { "type": "string" },
+    "machine_fingerprint": { "type": "string", "minLength": 1 },
+    "cache_ttl_seconds": { "type": "integer", "minimum": 60, "maximum": 31536000 },
+    "invalidation_signals": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "executable", "arguments", "working_directory", "expected_process"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["open_url", "open_app", "open_path", "open_settings", "shell", "none"]
+        },
+        "executable": { "type": "string" },
+        "arguments": { "type": "array", "items": { "type": "string" } },
+        "working_directory": { "type": "string" },
+        "expected_process": { "type": "string" }
+      }
+    }
+  }
+}

@@ -33,6 +33,6 @@ Tài liệu này xác định vai trò của từng bộ dữ liệu trong nghi�
 
 ## 4. Báo cáo kiểm định dữ liệu tự động
 Các kết quả kiểm định thật được lưu trữ tại:
-- `reports/data_audit/gsc_summary.csv`
-- `reports/data_audit/gsc_class_distribution.csv`
-- `reports/data_audit/gsc_file_audit.csv`
+- `reports/audits/generated/gsc_summary.csv`
+- `reports/audits/generated/gsc_class_distribution.csv`
+- `reports/audits/generated/gsc_file_audit.csv`

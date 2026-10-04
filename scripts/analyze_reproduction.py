@@ -2,7 +2,7 @@ import csv
 from collections import defaultdict
 
 data = []
-with open(r'G:\Desktop\voice-AI-assistant\docs\reproduction_51_experiments.csv', 'r', encoding='utf-8') as f:
+with open(r'reports\tables\reproduction_51_experiments.csv', 'r', encoding='utf-8') as f:
     reader = csv.DictReader(f)
     for row in reader:
         for k in ['way', 'shot']:

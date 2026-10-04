@@ -8,8 +8,8 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 
-DOCX_PATH = Path(r"docs\report\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx")
-BACKUP_PATH = Path(r"docs\report\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx.bak")
+DOCX_PATH = Path(r"docs\reports\midterm\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx")
+BACKUP_PATH = Path(r"docs\reports\midterm\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx.bak")
 DEST_EXTERNAL_PATH = Path(r"G:\Desktop\docs\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx")
 FIG19_PATH = Path(r"G:\Desktop\docs\report_assets\fig_19_interim_experimental_results.png")
 

@@ -1,8 +1,199 @@
 {
   "one": {
     "name": "one",
-    "description": "Hành động người dùng tùy biến",
-    "created_at": "2026-10-03 01:23:06",
-    "samples_count": 5
+    "description": "mở youtube và mở bài tây thi của mck",
+    "action_type": "antigravity",
+    "created_at": "2026-10-04 00:58:09",
+    "samples_count": 5,
+    "action_profile": {
+      "status": "ready",
+      "intent": "mở youtube và mở bài tây thi của mck",
+      "primary": {
+        "type": "open_url",
+        "executable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "arguments": [
+          "https://www.youtube.com/results?search_query=t%C3%A2y+thi+mck"
+        ],
+        "working_directory": "G:\\Desktop\\voice-AI-assistant",
+        "expected_process": "msedge"
+      },
+      "fallbacks": [
+        {
+          "type": "open_url",
+          "executable": "explorer.exe",
+          "arguments": [
+            "https://www.youtube.com/results?search_query=t%C3%A2y+thi+mck"
+          ],
+          "working_directory": "G:\\Desktop\\voice-AI-assistant",
+          "expected_process": "explorer"
+        }
+      ],
+      "verified": true,
+      "verification": "Verified msedge process running after launching the YouTube search URL",
+      "machine_fingerprint": "Windows-x64-msedge.exe",
+      "cache_ttl_seconds": 2592000,
+      "invalidation_signals": [
+        "executable_not_found:C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "default_browser_changed",
+        "exit_code_non_zero"
+      ]
+    }
+  },
+  "chat_gpt": {
+    "name": "chat gpt",
+    "description": "wake word",
+    "action_type": "antigravity",
+    "created_at": "2026-10-04 01:18:53",
+    "samples_count": 6
+  },
+  "mo_youtube": {
+    "name": "mở youtube",
+    "description": "mở youtube",
+    "action_type": "antigravity",
+    "created_at": "2026-10-04 01:59:32",
+    "samples_count": 8,
+    "action_profile": {
+      "cache_ttl_seconds": 2592000,
+      "fallbacks": [
+        {
+          "arguments": [
+            "https://www.youtube.com"
+          ],
+          "executable": "explorer.exe",
+          "expected_process": "explorer",
+          "type": "open_url",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        },
+        {
+          "arguments": [
+            "Start-Process",
+            "https://www.youtube.com"
+          ],
+          "executable": "powershell.exe",
+          "expected_process": "powershell",
+          "type": "shell",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        }
+      ],
+      "intent": "open_youtube",
+      "invalidation_signals": [
+        "Edge executable path C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe is not found",
+        "Process launch returns non-zero exit code",
+        "Default browser association changes"
+      ],
+      "machine_fingerprint": "Windows 64-bit; Edge at C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+      "primary": {
+        "arguments": [
+          "https://www.youtube.com"
+        ],
+        "executable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "expected_process": "msedge",
+        "type": "open_url",
+        "working_directory": "G:\\Desktop\\voice-AI-assistant"
+      },
+      "status": "ready",
+      "verification": "Started msedge with argument https://www.youtube.com and verified running process with PID 1560",
+      "verified": true
+    }
+  },
+  "mck": {
+    "name": "mck",
+    "description": "mở youtube và tìm kiếm các bài hát của mck",
+    "action_type": "antigravity",
+    "created_at": "2026-10-04 05:28:56",
+    "samples_count": 10,
+    "action_profile": {
+      "cache_ttl_seconds": 2592000,
+      "fallbacks": [
+        {
+          "arguments": [
+            "https://www.youtube.com/results?search_query=b%C3%A0i+h%C3%A1t+mck"
+          ],
+          "executable": "explorer.exe",
+          "expected_process": "msedge",
+          "type": "open_url",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        }
+      ],
+      "intent": "open_youtube_search_mck",
+      "invalidation_signals": [
+        "msedge.exe not found at resolved path",
+        "process launch exits with non-zero code",
+        "default browser url association changed"
+      ],
+      "machine_fingerprint": "Windows_x64_MSEdgeHTM_msedge.exe",
+      "primary": {
+        "arguments": [
+          "https://www.youtube.com/results?search_query=b%C3%A0i+h%C3%A1t+mck"
+        ],
+        "executable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "expected_process": "msedge",
+        "type": "open_url",
+        "working_directory": "G:\\Desktop\\voice-AI-assistant"
+      },
+      "status": "ready",
+      "verification": "Started Edge process with YouTube search query URL and verified msedge process is active",
+      "verified": true
+    }
+  },
+  "setup": {
+    "name": "setup",
+    "description": "mở 1 tab chatgpt web ,  1 tab youtube random nhạc chill lofi , 1 tab facebook",
+    "action_type": "antigravity",
+    "created_at": "2026-10-04 05:35:04",
+    "samples_count": 10,
+    "action_profile": {
+      "cache_ttl_seconds": 2592000,
+      "fallbacks": [
+        {
+          "arguments": [
+            "https://chatgpt.com"
+          ],
+          "executable": "explorer.exe",
+          "expected_process": "explorer",
+          "type": "open_url",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        },
+        {
+          "arguments": [
+            "https://www.youtube.com/results?search_query=chill+lofi+music"
+          ],
+          "executable": "explorer.exe",
+          "expected_process": "explorer",
+          "type": "open_url",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        },
+        {
+          "arguments": [
+            "https://www.facebook.com"
+          ],
+          "executable": "explorer.exe",
+          "expected_process": "explorer",
+          "type": "open_url",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        }
+      ],
+      "intent": "Mở đồng thời 3 trang web trong các tab trình duyệt: ChatGPT, YouTube tìm kiếm nhạc chill lofi và Facebook",
+      "invalidation_signals": [
+        "Executable 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' không còn tồn tại",
+        "Default browser URL association cho HTTPS thay đổi",
+        "Lệnh Start-Process trả về exit code khác 0 hoặc tiến trình msedge không khởi chạy được"
+      ],
+      "machine_fingerprint": "Windows 10/11 x64; DefaultBrowserProgId=MSEdgeHTM; Executable=C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+      "primary": {
+        "arguments": [
+          "https://chatgpt.com",
+          "https://www.youtube.com/results?search_query=chill+lofi+music",
+          "https://www.facebook.com"
+        ],
+        "executable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "expected_process": "msedge",
+        "type": "open_url",
+        "working_directory": "G:\\Desktop\\voice-AI-assistant"
+      },
+      "status": "ready",
+      "verification": "Đã thực thi Start-Process với Microsoft Edge và 3 URL mục tiêu, tiến trình msedge đang chạy với exit code 0.",
+      "verified": true
+    }
   }
 }

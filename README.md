@@ -11,6 +11,62 @@ Dự án này tập trung giải quyết bài toán nhận diện các từ khó
 
 Đồng thời, module này được xây dựng với vai trò là **Audio Intelligence Core** cho ứng dụng **Desktop Voice AI Assistant**, cho phép hệ thống chạy ngầm, kích hoạt bằng wake-word và nhận diện khẩu lệnh tùy biến của người dùng để điều khiển máy tính thông qua **Antigravity**.
 
+## Chạy nhanh dự án
+
+### Yêu cầu
+
+- Windows 10/11 (khuyến nghị cho ứng dụng desktop), Python 3.10 trở lên và microphone.
+- Git; Conda hoặc `venv`/`pip`.
+- `codex` CLI nếu muốn khẩu lệnh giao việc cho Codex; `agy` CLI nếu muốn dùng chức năng Antigravity. Hai CLI này không bắt buộc đối với phần nhận diện từ khóa.
+
+### 1. Clone và tạo môi trường
+
+```powershell
+git clone https://github.com/PHamHuy-23/voice-AI-assistant.git
+cd voice-AI-assistant
+
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+Nếu PowerShell chặn script kích hoạt, có thể mở Command Prompt và chạy `.venv\Scripts\activate.bat`. Người dùng Conda có thể thay toàn bộ bước tạo môi trường bằng:
+
+```powershell
+conda env create -f environment.yml
+conda activate speech-fewshot-kws
+pip install customtkinter sounddevice
+```
+
+### 2. Mở ứng dụng Voice AI Assistant
+
+```powershell
+python demo/app_gui_v2.py
+```
+
+Hoặc nhấp đúp `CHAY_DEMO_GUI.bat` trên máy Windows đã cấu hình đúng Python. Cách chạy bằng lệnh ở trên có tính di động cao hơn vì file `.bat` hiện tham chiếu trực tiếp tới Python 3.12 của máy phát triển.
+
+Checkpoint mặc định đã nằm tại `checkpoints/tcresnet8_clean_weights.pt`. Trong giao diện, tạo một command mới, thu ít nhất 5 mẫu giọng nói, cho phép dùng microphone khi Windows hỏi quyền, rồi bật chế độ nghe để thử nhận diện.
+
+### 3. Chạy kiểm thử
+
+```powershell
+python -m unittest discover -s tests -p "test_*.py"
+```
+
+### 4. Huấn luyện và đánh giá mô hình
+
+Đặt Google Speech Commands v2 tại `data/raw/speech_commands_v2/`, sau đó chạy:
+
+```powershell
+python scripts/audit_dataset.py --config configs/data/gsc.yaml
+python scripts/train.py --config configs/experiments/exp_001_5way_5shot.yaml
+python scripts/evaluate.py --checkpoint checkpoints/exp_001/best.pt
+```
+
+Dữ liệu âm thanh thô, checkpoint sinh trong quá trình train và log runtime được `.gitignore` loại khỏi Git. Xem thêm [`data/README.md`](data/README.md), [`docs/README.md`](docs/README.md) và [`reports/README.md`](reports/README.md).
+
 ---
 
 ## 2. Problem Statement (Định nghĩa bài toán)
@@ -159,16 +215,56 @@ python scripts/demo.py \
 ```
 Inference Engine này cung cấp hàm API `predict()` có thể nhúng trực tiếp vào vòng lặp mic của ứng dụng Desktop Voice AI Assistant.
 
+### Voice Command → Codex CLI
+
+Chạy `CHAY_DEMO_GUI.bat`, chọn **Tạo Command Mới**, nhập tên khẩu lệnh và yêu cầu cụ thể cho Codex, sau đó thu đủ 5 mẫu. Khi khẩu lệnh được nhận diện đạt ngưỡng, ứng dụng gọi `codex exec` trong nền và gửi nguyên văn phần mô tả làm prompt.
+
+- Codex chạy trong workspace của dự án với sandbox `workspace-write` và auto-review.
+- Mỗi thời điểm chỉ chạy một tác vụ; cùng một khẩu lệnh có cooldown 10 giây.
+- Kết quả được đưa vào nhật ký giao diện; log đầy đủ nằm trong `demo/codex_runs/`.
+- Các command cũ không có `action_type: codex` sẽ không tự động thực thi. Hãy tạo lại command nếu muốn gắn hành động Codex.
+- Không đặt mật khẩu, token hoặc dữ liệu bí mật trong phần mô tả command.
+
+#### Biên dịch action bằng Antigravity và lưu cache
+
+System prompt nằm tại `demo/prompts/antigravity_action_resolver.md`; kết quả bị ràng buộc bởi `demo/prompts/action_profile.schema.json`. Chạy lần đầu với description:
+
+```powershell
+python scripts/resolve_voice_action.py "Mở YouTube bằng trình duyệt nhanh nhất trên máy này" --name open_youtube --allow-unattended-tools
+```
+
+Flag `--allow-unattended-tools` truyền `--dangerously-skip-permissions` cho đúng lượt resolve. Chỉ dùng khi người dùng đã cho phép. Action profile theo máy được lưu trong `demo/action_cache/`; runtime có thể dùng `CachedActionExecutor` để thử primary rồi fallback mà không gọi AI lần nữa.
+
+`AntigravityActionResolver.stream_chat()` đã cung cấp nền tảng `stream-json` cho cửa sổ chat ở hạng mục giao diện tiếp theo.
+
 ---
 
 ## 13. Repository Structure (Cấu trúc mã nguồn)
 ```text
 voice-AI-assistant/
+├── checkpoints/              # Trọng số mô hình dùng cho demo/đánh giá
 ├── configs/
 │   ├── data/                 # gsc.yaml, audiomnist.yaml, fsc.yaml
 │   ├── preprocessing/        # raw.yaml, normalized.yaml
 │   ├── model/                # td_resnet.yaml, prototypical.yaml
 │   └── experiments/          # exp_001_5way_5shot.yaml
+├── data/                     # Chỉ dữ liệu đầu vào: raw/, processed/, external/
+├── demo/                     # Ứng dụng GUI và kịch bản demo desktop
+├── docs/
+│   ├── design/               # Kiến trúc, dữ liệu, thiết kế thực nghiệm
+│   ├── guides/               # Cẩm nang sử dụng và bảo vệ đồ án
+│   ├── reports/              # Báo cáo chính thức và bản nháp
+│   └── logs/                 # Nhật ký phát triển
+├── experiments/
+│   └── runs/                 # Log/checkpoint theo từng đợt tái hiện
+├── notebooks/                # Notebook phân tích theo thứ tự 01 -> 07
+├── reports/
+│   ├── audits/               # Kiểm toán dữ liệu
+│   ├── figures/              # Hình sinh từ phân tích
+│   ├── tables/               # Bảng tổng hợp kết quả
+│   ├── pipeline/             # Manifest/chia tập dữ liệu
+│   └── results/              # Kết quả đánh giá mới
+├── scripts/                  # Điểm chạy train/evaluate/demo và công cụ phân tích
 ├── src/
 │   ├── data/                 # audit.py, preprocessing.py, datasets.py, episodic_sampler.py
 │   ├── features/             # audio_features.py, visualization.py
@@ -176,16 +272,14 @@ voice-AI-assistant/
 │   ├── training/             # trainer.py, losses.py, metrics.py
 │   ├── evaluation/           # evaluate.py, embedding_analysis.py
 │   └── utils/                # config.py
-├── scripts/                  # audit_dataset.py, compare_raw_normalized.py, train.py, evaluate.py, demo.py
-├── notebooks/                # 6 Notebooks tương ứng báo cáo môn học (01 -> 06)
-├── reports/                  # data_audit/, figures/, tables/, results/
-├── demo/                     # support/ (thư mục mẫu từ khóa), samples/
-├── docs/                     # architecture.md, dataset.md, experiments.md
 ├── tests/                    # test_pipeline.py
+├── CHAY_DEMO_GUI.bat         # Chạy nhanh giao diện trên Windows
 ├── requirements.txt
 ├── environment.yml
 └── README.md
 ```
+
+Điểm bắt đầu để tìm tài liệu là [`docs/README.md`](docs/README.md); để tìm artifact và số liệu là [`reports/README.md`](reports/README.md).
 
 ---
 

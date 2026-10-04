@@ -26,9 +26,9 @@ Chạy kiểm định và trích xuất bảng số liệu thật:
 python scripts/audit_dataset.py \
     --config configs/data/gsc.yaml \
     --data_dir /kaggle/input/google-speech-commands-v2/speech_commands_v2 \
-    --output_dir reports/data_audit
+    --output_dir reports/audits/generated
 ```
-Số liệu sẽ được xuất ra `reports/data_audit/gsc_summary.csv` để đưa thẳng vào Chương 2.2 của Báo cáo.
+Số liệu sẽ được xuất ra `reports/audits/generated/gsc_summary.csv` để đưa thẳng vào Chương 2.2 của Báo cáo.
 
 ---
 

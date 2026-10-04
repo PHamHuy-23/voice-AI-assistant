@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description="Audit audio dataset distributions and generate report CSVs.")
     parser.add_argument("--config", type=str, default="configs/data/gsc.yaml", help="Path to dataset config YAML.")
     parser.add_argument("--data_dir", type=str, default=None, help="Override raw data directory.")
-    parser.add_argument("--output_dir", type=str, default="reports/data_audit", help="Directory to save audit CSVs.")
+    parser.add_argument("--output_dir", type=str, default="reports/audits/generated", help="Directory to save audit CSVs.")
     args = parser.parse_args()
 
     cfg = load_yaml(args.config)

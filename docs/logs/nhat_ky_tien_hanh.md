@@ -1069,19 +1069,19 @@ Không tự hòa trộn ba nguồn thành một kết luận duy nhất.
 
 Vào ngày 01/10/2026, toàn bộ dữ liệu kiểm toán và hình ảnh thực nghiệm thực tế từ môi trường Kaggle đã được đồng bộ vào thư mục `docs/` và tích hợp 100% vào báo cáo giữa kỳ (`Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`):
 
-### 26.1. Dữ liệu kiểm toán thô (Raw Data Audit - `docs/data_audit/`)
+### 26.1. Dữ liệu kiểm toán thô (Raw Data Audit - `reports/audits/gsc_raw/`)
 - `gsc_raw_class_distribution.csv`: Thống kê phân bố toàn bộ 35 lớp từ khóa của Google Speech Commands v0.02 (105.829 file keyword + 6 file background noise = 105.835 file WAV). Đã tích hợp bảng phân bố 35 lớp (chia 2 cột song song) vào Mục 2.2.1.
 - `gsc_raw_speaker_distribution.csv`: Thống kê số lượng speaker cho từng từ khóa (từ 464 đến 1.668 speaker). Đã tích hợp bảng đối chiếu speaker toàn diện vào Mục 2.2.2, giải thích rõ cơ chế phân tách Core ($N_{speaker} \ge 1000 \rightarrow 30$ lớp) và Unknown ($N_{speaker} < 1000 \rightarrow 5$ lớp: `visual`, `learn`, `follow`, `forward`, `backward`).
 - `gsc_raw_shorter_than_1s.csv`: Danh sách chính xác 10.435 file ngắn hơn 1 giây (chiếm 9,8597%) bị loại bỏ trong bước Filtering.
 
-### 26.2. Kiểm toán FS-GSC sau chuẩn bị (FS-GSC Final Audit - `docs/fs_gsc_final_audit/`)
+### 26.2. Kiểm toán FS-GSC sau chuẩn bị (FS-GSC Final Audit - `reports/audits/fs_gsc_final/`)
 - `raw_vs_prepared_summary.csv`: Bảng đối chiếu trực diện 6 tiêu chí kỹ thuật giữa Raw GSC và FS-GSC Prepared (105.835 WAV thô $\rightarrow$ 33.790 WAV chuẩn bị, loại bỏ 10.435 file ngắn, cân bằng 30 Core classes và 5 Unknown classes). Đã tích hợp vào Mục 2.3.7.
 - `core_split_summary.csv` & `unknown_split_summary.csv`: Bảng tổng hợp cấu trúc phân chia Train (20 Core classes / 21.240 mẫu; 1.155 Unknown samples), Validation (5 Core classes / 5.310 mẫu; 390 Unknown samples), Test (5 Core classes / 5.310 mẫu; 385 Unknown samples). Tổng cộng toàn hệ thống: 33.790 mẫu.
 - `core_class_distribution.csv`: Xác nhận 30 Core classes, mỗi lớp chính xác 1.062 mẫu ($\mu = 1062, \sigma = 0$).
 - `unknown_class_distribution.csv`: Xác nhận 5 Unknown classes, mỗi lớp chính xác 386 mẫu.
 - `audio_metadata_sample.csv`: Metadata kiểm toán file âm thanh sau chuẩn bị (Sample rate 16.000 Hz, 1 channel mono, 16.000 frames, duration 1.0s, format WAV PCM_16). Đã tích hợp bảng trích xuất mẫu đại diện vào Mục 2.3.7.
 
-### 26.3. Hình ảnh trực quan hóa thực nghiệm Mục 2.5 (`docs/figures/2_5/`)
+### 26.3. Hình ảnh trực quan hóa thực nghiệm Mục 2.5 (`reports/figures/preprocessing/`)
 Đã đồng bộ và nhúng sắc nét toàn bộ 8 cụm hình so sánh tín hiệu & đặc trưng:
 - **Hình 2.6**: Waveform và Spectrogram của mẫu FS-GSC sau tiền xử lý (`gsc_processed_waveform.png` & `gsc_processed_spectrogram.png`).
 - **Hình 2.7**: Mel-spectrogram và MFCC của mẫu FS-GSC sau tiền xử lý (`gsc_processed_mel.png` & `gsc_processed_mfcc.png`).
@@ -1095,7 +1095,7 @@ Vào ngày 01/10/2026, toàn bộ dữ liệu kiểm toán và hình ảnh thự
 
 Toàn bộ báo cáo đã được biên dịch thành công ra file Word đạt chuẩn học thuật tại:
 - `G:\Desktop\docs\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
-- `G:\Desktop\voice-AI-assistant\docs\report\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
+- `G:\Desktop\voice-AI-assistant\docs\reports\midterm\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
 
 ---
 
@@ -1215,7 +1215,7 @@ Vào ngày 02/10/2026, nhóm đã hoàn thành việc thiết kế kịch bản,
 - Mã nguồn kiểm thử demo độc lập được lưu trữ và vận hành tại: `demo/run_desktop_demo.py`.
 - Toàn bộ Báo cáo giữa kỳ đã được biên dịch hoàn tất đạt kích thước **9.36 MB** tại:
   - `G:\Desktop\docs\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
-  - `G:\Desktop\voice-AI-assistant\docs\report\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
+  - `G:\Desktop\voice-AI-assistant\docs\reports\midterm\Bao_cao_hang_muc_cham_giua_ky_Xu_ly_tieng_noi.docx`
 
 ---
 
@@ -1266,4 +1266,4 @@ Vào ngày 03/10/2026, nhóm đã hoàn tất việc trích xuất, chuẩn hóa
 - Bổ sung 3 bảng ma trận đo đạc: Bảng 3.1 (Clean Benchmark qua 4 Way × 5 Shot), Bảng 3.2 (Môi trường Trợ lý ảo thực tế BG + Silence + Unknown), Bảng 3.3 (Xếp hạng 8 điều kiện môi trường).
 - Phân tích sâu 4 quy luật: Bù đắp $N$-way bằng $K$-shot, Bẫy khoảng lặng và sự bù trừ của Unknown, Tính bền bỉ trước nhiễu nền, Điểm bão hòa phụ thuộc số lớp.
 - Bổ sung Bảng 3.4 đối chiếu 12 tiêu chí giữa kết quả tái hiện và công bố gốc của Parnami & Lee (*arXiv:2007.14463*).
-- Cập nhật đồng bộ vào cả 2 tệp báo cáo Word tại `docs/report/` và `G:\Desktop\docs\`.
+- Cập nhật đồng bộ vào cả 2 tệp báo cáo Word tại `docs/reports/midterm/` và `G:\Desktop\docs\`.

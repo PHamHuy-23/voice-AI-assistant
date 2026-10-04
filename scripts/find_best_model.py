@@ -3,7 +3,7 @@ import glob
 import json
 import csv
 
-csv_file = r"docs\reproduction_160_experiments.csv"
+csv_file = r"reports\tables\reproduction_160_experiments.csv"
 with open(csv_file, "r", encoding="utf-8") as f:
     rows = list(csv.DictReader(f))
 
@@ -49,8 +49,8 @@ for r in sorted_5w[:5]:
 print("\n=== CHECKING MODEL CHECKPOINT PATHS ===")
 candidate_ids = ["exp_025", "exp_040", "exp_104", "exp_112", "exp_120", "exp_152", "exp_160"]
 base_dirs = [
-    r"data\paper_reproduction_109of160_20261002_1643\results",
-    r"data\paper_reproduction_51of160_20261001_1952"
+    r"experiments\runs\paper_reproduction_109of160_20261002_1643\results",
+    r"experiments\runs\paper_reproduction_51of160_20261001_1952"
 ]
 
 for cid in candidate_ids:

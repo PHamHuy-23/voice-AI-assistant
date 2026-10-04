@@ -25,3 +25,5 @@ tqdm>=4.66.0
 
 # Audio capture & Demo (Optional for local mic testing)
 pyaudio>=0.2.14; platform_system == "Windows" or platform_system == "Linux"
+sounddevice>=0.4.6
+customtkinter>=5.2.0
