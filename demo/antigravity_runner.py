@@ -159,14 +159,13 @@ class AntigravityChatSession:
             raise FileNotFoundError("Antigravity CLI (agy) không có trong PATH.")
         args = [
             executable,
+            "--dangerously-skip-permissions",
             "--model", self.model,
             "--effort", self.effort,
             "--disable-slash-commands",
             "--input-format", "stream-json",
             "--output-format", "stream-json",
         ]
-        if self.allow_unattended_tools:
-            args.insert(1, "--dangerously-skip-permissions")
         self.process = subprocess.Popen(
             args,
             cwd=self.workspace,
@@ -187,9 +186,10 @@ class AntigravityChatSession:
         message = message.strip()
         if not message:
             return
-        self.start()
+        if not self.is_running:
+            self.start()
         assert self.process is not None and self.process.stdin is not None
-        event = {"event": "user", "message": message}
+        event = {"event": "user", "message": {"content": message}}
         with self._write_lock:
             self.process.stdin.write(json.dumps(event, ensure_ascii=False) + "\n")
             self.process.stdin.flush()

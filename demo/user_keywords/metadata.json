@@ -1,51 +1,4 @@
 {
-  "one": {
-    "name": "one",
-    "description": "mở youtube và mở bài tây thi của mck",
-    "action_type": "antigravity",
-    "created_at": "2026-10-04 00:58:09",
-    "samples_count": 5,
-    "action_profile": {
-      "status": "ready",
-      "intent": "mở youtube và mở bài tây thi của mck",
-      "primary": {
-        "type": "open_url",
-        "executable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-        "arguments": [
-          "https://www.youtube.com/results?search_query=t%C3%A2y+thi+mck"
-        ],
-        "working_directory": "G:\\Desktop\\voice-AI-assistant",
-        "expected_process": "msedge"
-      },
-      "fallbacks": [
-        {
-          "type": "open_url",
-          "executable": "explorer.exe",
-          "arguments": [
-            "https://www.youtube.com/results?search_query=t%C3%A2y+thi+mck"
-          ],
-          "working_directory": "G:\\Desktop\\voice-AI-assistant",
-          "expected_process": "explorer"
-        }
-      ],
-      "verified": true,
-      "verification": "Verified msedge process running after launching the YouTube search URL",
-      "machine_fingerprint": "Windows-x64-msedge.exe",
-      "cache_ttl_seconds": 2592000,
-      "invalidation_signals": [
-        "executable_not_found:C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-        "default_browser_changed",
-        "exit_code_non_zero"
-      ]
-    }
-  },
-  "chat_gpt": {
-    "name": "chat gpt",
-    "description": "wake word",
-    "action_type": "antigravity",
-    "created_at": "2026-10-04 01:18:53",
-    "samples_count": 6
-  },
   "mo_youtube": {
     "name": "mở youtube",
     "description": "mở youtube",
@@ -93,46 +46,6 @@
       },
       "status": "ready",
       "verification": "Started msedge with argument https://www.youtube.com and verified running process with PID 1560",
-      "verified": true
-    }
-  },
-  "mck": {
-    "name": "mck",
-    "description": "mở youtube và tìm kiếm các bài hát của mck",
-    "action_type": "antigravity",
-    "created_at": "2026-10-04 05:28:56",
-    "samples_count": 10,
-    "action_profile": {
-      "cache_ttl_seconds": 2592000,
-      "fallbacks": [
-        {
-          "arguments": [
-            "https://www.youtube.com/results?search_query=b%C3%A0i+h%C3%A1t+mck"
-          ],
-          "executable": "explorer.exe",
-          "expected_process": "msedge",
-          "type": "open_url",
-          "working_directory": "G:\\Desktop\\voice-AI-assistant"
-        }
-      ],
-      "intent": "open_youtube_search_mck",
-      "invalidation_signals": [
-        "msedge.exe not found at resolved path",
-        "process launch exits with non-zero code",
-        "default browser url association changed"
-      ],
-      "machine_fingerprint": "Windows_x64_MSEdgeHTM_msedge.exe",
-      "primary": {
-        "arguments": [
-          "https://www.youtube.com/results?search_query=b%C3%A0i+h%C3%A1t+mck"
-        ],
-        "executable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-        "expected_process": "msedge",
-        "type": "open_url",
-        "working_directory": "G:\\Desktop\\voice-AI-assistant"
-      },
-      "status": "ready",
-      "verification": "Started Edge process with YouTube search query URL and verified msedge process is active",
       "verified": true
     }
   },
@@ -193,6 +106,136 @@
       },
       "status": "ready",
       "verification": "Đã thực thi Start-Process với Microsoft Edge và 3 URL mục tiêu, tiến trình msedge đang chạy với exit code 0.",
+      "verified": true
+    }
+  },
+  "note": {
+    "name": "note",
+    "description": "mở notepad",
+    "action_type": "antigravity",
+    "created_at": "2026-10-05 05:31:13",
+    "samples_count": 6,
+    "action_profile": {
+      "cache_ttl_seconds": 2592000,
+      "fallbacks": [
+        {
+          "arguments": [],
+          "executable": "notepad.exe",
+          "expected_process": "notepad",
+          "type": "open_app",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        },
+        {
+          "arguments": [],
+          "executable": "C:\\Windows\\notepad.exe",
+          "expected_process": "notepad",
+          "type": "open_app",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        }
+      ],
+      "intent": "open_notepad",
+      "invalidation_signals": [
+        "C:\\Windows\\system32\\notepad.exe không tồn tại",
+        "Khởi chạy notepad thất bại hoặc exit code khác 0",
+        "Process notepad không xuất hiện trong Process table sau khi gọi"
+      ],
+      "machine_fingerprint": "Microsoft Windows NT 10.0.19045.0 x64 | C:\\Windows\\system32\\notepad.exe",
+      "primary": {
+        "arguments": [],
+        "executable": "C:\\Windows\\system32\\notepad.exe",
+        "expected_process": "notepad",
+        "type": "open_app",
+        "working_directory": "G:\\Desktop\\voice-AI-assistant"
+      },
+      "status": "ready",
+      "verification": "Đã thực thi thành công C:\\Windows\\system32\\notepad.exe và xác minh process notepad (PID 3664) đang chạy trên hệ thống.",
+      "verified": true
+    }
+  },
+  "pinterest": {
+    "name": "pinterest",
+    "description": "mở pinterest trên trình duyệt",
+    "action_type": "antigravity",
+    "created_at": "2026-10-06 23:44:55",
+    "samples_count": 5,
+    "action_profile": {
+      "cache_ttl_seconds": 2592000,
+      "fallbacks": [
+        {
+          "arguments": [
+            "https://www.pinterest.com"
+          ],
+          "executable": "explorer.exe",
+          "expected_process": "msedge",
+          "type": "shell",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        }
+      ],
+      "intent": "open_pinterest_browser",
+      "invalidation_signals": [
+        "executable_not_found: C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "default_browser_association_changed",
+        "process_exit_code_non_zero"
+      ],
+      "machine_fingerprint": "Microsoft Windows NT 10.0.19045.0; AMD64; DefaultBrowser: MSEdgeHTM (C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe)",
+      "primary": {
+        "arguments": [
+          "https://www.pinterest.com"
+        ],
+        "executable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "expected_process": "msedge",
+        "type": "open_url",
+        "working_directory": "G:\\Desktop\\voice-AI-assistant"
+      },
+      "status": "ready",
+      "verification": "msedge.exe launched with URL 'https://www.pinterest.com' and confirmed running via Get-Process (PID 2260) with exit code 0",
+      "verified": true
+    }
+  },
+  "tieu_bao": {
+    "name": "tiểu bảo",
+    "description": "wake word",
+    "action_type": "antigravity",
+    "created_at": "2026-10-06 23:48:01",
+    "samples_count": 7
+  },
+  "chat_gpt": {
+    "name": "chat gpt",
+    "description": "mở chat gpt lên",
+    "action_type": "antigravity",
+    "created_at": "2026-10-07 00:49:30",
+    "samples_count": 7,
+    "action_profile": {
+      "cache_ttl_seconds": 2592000,
+      "fallbacks": [
+        {
+          "arguments": [
+            "https://chatgpt.com"
+          ],
+          "executable": "C:\\Windows\\explorer.exe",
+          "expected_process": "msedge",
+          "type": "open_url",
+          "working_directory": "G:\\Desktop\\voice-AI-assistant"
+        }
+      ],
+      "intent": "open_chatgpt",
+      "invalidation_signals": [
+        "Executable C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe not found",
+        "Process exit code non-zero",
+        "Browser executable changed or uninstalled"
+      ],
+      "machine_fingerprint": "Windows_x64_Edge_10.0",
+      "primary": {
+        "arguments": [
+          "https://chatgpt.com"
+        ],
+        "executable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "expected_process": "msedge",
+        "type": "open_url",
+        "working_directory": "G:\\Desktop\\voice-AI-assistant"
+      },
+      "status": "ready",
+      "verification": "Successfully launched 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' with argument 'https://chatgpt.com' and confirmed active msedge process (PID 392).",
       "verified": true
     }
   }

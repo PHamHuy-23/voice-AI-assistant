@@ -18,6 +18,7 @@ data/processed/*
 data/external/*
 !data/external/.gitkeep
 *.wav
+!demo/assets/sounds/*.wav
 *.mp3
 *.flac
 *.tar.gz

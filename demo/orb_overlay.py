@@ -5,9 +5,40 @@ from __future__ import annotations
 import json
 import math
 import sys
+import threading
 import time
 import tkinter as tk
 from pathlib import Path
+
+try:
+    import winsound
+except ImportError:
+    winsound = None
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+SOUND_DIR = PROJECT_ROOT / "demo" / "assets" / "sounds"
+SOUND_CLICK = str(SOUND_DIR / "click.wav")
+SOUND_CONFIRM = str(SOUND_DIR / "confirm.wav")
+SOUND_GAMING_LOCK = str(SOUND_DIR / "gaming_lock.wav")
+
+
+def play_sound(path: str) -> None:
+    """Phát âm thanh UI hiệu ứng công nghệ cao trên luồng nền daemon."""
+    if winsound is None or not Path(path).exists():
+        return
+
+    def _worker():
+        try:
+            winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_NODEFAULT)
+        except Exception:
+            pass
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+def play_wake_chime() -> None:
+    """Phát âm thanh thức tỉnh công nghệ cao khi trợ lý thức giấc."""
+    play_sound(SOUND_GAMING_LOCK)
 
 
 def main() -> None:
@@ -51,8 +82,7 @@ def main() -> None:
         root.destroy()
 
     def shutdown(_event=None):
-        shutdown_signal.parent.mkdir(parents=True, exist_ok=True)
-        shutdown_signal.write_text(str(time.time()), encoding="utf-8")
+        # Nút [x] trên Orb overlay chỉ đóng cửa sổ nổi, không làm sập ứng dụng chính
         root.destroy()
 
     for item in (core, outer_ring, *bars):
@@ -62,7 +92,7 @@ def main() -> None:
 
     started = time.monotonic()
     colors = ("#b9ddff", "#d8c7ff", "#ffffff", "#c7e7ff")
-    state = {"frame": 0, "status_mtime": 0.0, "has_result": False}
+    state = {"frame": 0, "status_mtime": 0.0, "has_result": False, "last_activity": time.monotonic()}
 
     def show_status(message):
         canvas.itemconfigure(status_text, text=message[:34])
@@ -74,7 +104,8 @@ def main() -> None:
             canvas.itemconfigure(item, state="hidden")
 
     def animate():
-        if time.monotonic() - started >= timeout:
+        # Chỉ tự đóng nếu sau `timeout` giây mà không có bất kỳ hoạt động nào từ app
+        if time.monotonic() - state["last_activity"] >= timeout:
             root.destroy()
             return
         frame = state["frame"]
@@ -96,25 +127,48 @@ def main() -> None:
         try:
             mtime = status_path.stat().st_mtime
             if mtime != state["status_mtime"]:
+                state["last_activity"] = time.monotonic()
                 payload = json.loads(status_path.read_text(encoding="utf-8"))
                 status_title = str(payload.get("title", ""))
-                if status_title == "Không nhận diện":
+                status_detail = str(payload.get("detail", ""))
+
+                if status_title.startswith("Đã nhận:"):
                     state["has_result"] = True
-                    show_status(str(payload.get("detail", "Không nhận diện")))
-                elif status_title not in {"", "Đang nghe"}:
+                    cmd_name = status_title.replace("Đã nhận:", "").strip()
+                    show_status(f"✨ {cmd_name}")
+                elif status_title == "Không nhận diện":
                     state["has_result"] = True
-                    hide_status()
+                    show_status(f"❓ {status_detail[:24]}")
+                elif status_title == "Đang học lệnh" or "học" in status_title.lower():
+                    state["has_result"] = True
+                    show_status(f"🧠 {status_detail[:24]}")
+                elif status_title == "Đang thực thi" or status_title == "Đang chuẩn bị thực hiện":
+                    state["has_result"] = True
+                    show_status(f"⚡ {status_detail[:24]}")
+                elif status_title == "Đã hoàn tất":
+                    state["has_result"] = True
+                    show_status("✅ Hoàn thành!")
+                elif status_title == "Thực thi thất bại":
+                    state["has_result"] = True
+                    show_status(f"❌ {status_detail[:24]}")
+                elif status_title.startswith("Đang nghe"):
+                    show_status(f"🎙️ {status_title}...")
+                elif status_title:
+                    state["has_result"] = True
+                    show_status(status_title[:28])
+
                 state["status_mtime"] = mtime
         except (OSError, json.JSONDecodeError):
             pass
         if root.winfo_exists():
-            root.after(120, refresh_status)
+            root.after(100, refresh_status)
 
     def delayed_prompt():
         if not state["has_result"]:
-            show_status("Hãy nói command")
+            show_status("🎙️ Hãy nói command")
 
-    root.after(5000, delayed_prompt)
+    play_wake_chime()
+    root.after(100, delayed_prompt)
     animate()
     refresh_status()
     root.mainloop()

@@ -41,6 +41,12 @@ if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
 
 from src.models.tc_resnet8 import TCResNet8, load_trained_tcresnet8
+from src.audio_dsp import (
+    SileroVADManager,
+    apply_automatic_gain_control,
+    apply_speech_bandpass_filter,
+    isolate_and_condition_speech,
+)
 from demo.codex_runner import CodexRunResult, CodexRunner
 from demo.antigravity_runner import AntigravityChatSession
 
@@ -108,15 +114,95 @@ def center_voice_energy(audio: np.ndarray, target_length: int = 16000) -> np.nda
     return audio[start:start + target_length]
 
 
+def extract_temporal_candidate_windows(
+    audio: np.ndarray,
+    target_length: int = 16000,
+    offsets_ms: tuple[int, ...] = (-120, 0, 120),
+    use_vad_core: bool = True,
+) -> list[np.ndarray]:
+    """[NÂNG CẤP CHỈNH SỬA V2.2: VAD-Gated Vocal Core & Multi-Offset Alignment]
+    Khi môi trường có tiếng ồn quạt lớn, trước tiên dùng Silero VAD bóc tách ranh giới
+    lõi giọng nói thực (bỏ sạch quạt ở 2 đầu) rồi mới tạo chùm cửa sổ căn chỉnh.
+    """
+    audio = audio.flatten().astype(np.float32)
+    sr = target_length
+
+    # [XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 1]: Ưu tiên cô lập lõi phát âm qua Silero VAD
+    if use_vad_core:
+        from src.audio_dsp import SileroVADManager
+        vad = SileroVADManager.get_instance()
+        has_sp, t_start, t_end = vad.get_speech_interval(audio, sr=sr, threshold=0.30)
+        if has_sp and (t_end - t_start) >= int(0.12 * sr):
+            pad_margin = int(0.040 * sr)
+            s0 = max(0, t_start - pad_margin)
+            s1 = min(len(audio), t_end + pad_margin)
+            vocal_core = audio[s0:s1]
+
+            # Đệm zero sạch hai bên vào khung 1.0s (loại bỏ hoàn toàn tiếng quạt ngoài khoảng nói)
+            windows = []
+            for offset_ms in offsets_ms:
+                offset_samples = int((offset_ms / 1000.0) * sr)
+                if len(vocal_core) >= target_length:
+                    start_cut = max(0, min(len(vocal_core) - target_length, ((len(vocal_core) - target_length) // 2) + offset_samples))
+                    windows.append(vocal_core[start_cut:start_cut + target_length])
+                else:
+                    tot = target_length - len(vocal_core)
+                    left_pad = max(0, min(tot, (tot // 2) + offset_samples))
+                    right_pad = tot - left_pad
+                    clean_w = np.pad(vocal_core, (left_pad, right_pad), mode="constant", constant_values=0.0)
+                    windows.append(clean_w)
+            return windows
+
+    # Dự phòng căn trọng tâm năng lượng truyền thống nếu không bóc tách được bằng VAD
+    if len(audio) <= target_length:
+        return [center_voice_energy(audio, target_length)]
+
+    frame_size = 320  # 20ms
+    num_frames = len(audio) // frame_size
+    energies = [
+        np.sum(audio[i * frame_size:(i + 1) * frame_size] ** 2)
+        for i in range(num_frames)
+    ]
+
+    if len(energies) > 0 and max(energies) > 0:
+        weights = np.array(energies)
+        weights = np.maximum(0, weights - np.median(weights))
+        if weights.sum() > 0:
+            center_frame = int(np.average(np.arange(len(weights)), weights=weights))
+            center_sample = center_frame * frame_size
+        else:
+            center_sample = int(np.argmax(np.abs(audio)))
+    else:
+        center_sample = len(audio) // 2
+
+    nominal_start = center_sample - int(0.40 * target_length)
+    windows = []
+
+    for offset_ms in offsets_ms:
+        offset_samples = int((offset_ms / 1000.0) * sr)
+        start = nominal_start + offset_samples
+        start = max(0, min(len(audio) - target_length, start))
+        segment = audio[start:start + target_length]
+        windows.append(segment)
+
+    return windows if windows else [center_voice_energy(audio, target_length)]
+
+
 def normalize_and_save_wav(audio_data: np.ndarray, wav_path: str, sr: int = 16000):
-    """Aligns speech peak energy to 1.0s window, normalizes amplitude, and saves 16-bit WAV."""
-    audio = center_voice_energy(audio_data, target_length=sr)
+    """[XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 4: UNIFIED SPEECH CONDITIONING TRƯỚC KHI LƯU ENROLLMENT]
+    Bóc tách ranh giới giọng nói bằng Silero VAD, bù trừ độ lợi khuếch đại tự động (AGC)
+    chống lệch xa/gần mic, lọc dải thông sinh học và căn chuẩn vào khung 1.0s.
+    """
+    clean_audio, has_speech = isolate_and_condition_speech(audio_data, sr=sr, target_length=sr)
+    if not has_speech:
+        # Dự phòng bằng căn trọng tâm năng lượng truyền thống nếu VAD không phát hiện
+        clean_audio = center_voice_energy(audio_data, target_length=sr)
 
-    peak = np.max(np.abs(audio))
+    peak = np.max(np.abs(clean_audio))
     if peak > 0.05:
-        audio = (audio / peak) * 0.90
+        clean_audio = (clean_audio / peak) * 0.90
 
-    int16_data = np.clip(audio * 32767.0, -32767.0, 32767.0).astype(np.int16)
+    int16_data = np.clip(clean_audio * 32767.0, -32767.0, 32767.0).astype(np.int16)
     with wave.open(wav_path, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
@@ -140,22 +226,30 @@ class FewShotEngine:
 
         self.prototypes: Dict[str, torch.Tensor] = {}
         self.ambient_noise_proto: Optional[torch.Tensor] = None
+        # [XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 5: LỚP UNKNOWN - MẪU TỰ ĐỘNG CHỐNG NÓI LINH TINH & YOUTUBE]
+        self.unknown_proto_bank: Optional[torch.Tensor] = None
 
         self.ambient_noise_rms = 0.050
         self.speech_trigger_rms = 0.095
         self.min_similarity_threshold = 0.70
-        self.min_winner_margin = 0.04
+        # [NÂNG CẤP CHỈNH SỬA V2.1: Hạ ngưỡng margin mặc định cho micro desktop cùng người nói]
+        self.min_winner_margin = 0.018
         self.prototype_thresholds: Dict[str, float] = {}
 
         self.update_prototypes()
 
     def wav_to_normalized_embedding(self, wav_path: str) -> torch.Tensor:
+        """[XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 4: ĐỒNG HÓA ÂM HỌC TỆP WAV ENROLLMENT]"""
         with wave.open(wav_path, "rb") as wf:
             frames = wf.readframes(wf.getnframes())
             samples = np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
 
-        samples = center_voice_energy(samples, target_length=self.sr)
-        wav_t = torch.from_numpy(samples).unsqueeze(0)
+        # Áp dụng đường ống chuẩn hóa giọng nói đồng bộ
+        clean_audio, has_speech = isolate_and_condition_speech(samples, sr=self.sr, target_length=self.sr)
+        if not has_speech:
+            clean_audio = center_voice_energy(samples, target_length=self.sr)
+
+        wav_t = torch.from_numpy(clean_audio).unsqueeze(0)
         feat = self.mfcc_transform(wav_t)[0].T.unsqueeze(0)  # [1, 51, 40]
         
         with torch.no_grad():
@@ -164,12 +258,15 @@ class FewShotEngine:
         return norm_emb
 
     def raw_audio_to_normalized_embedding(self, audio: np.ndarray) -> torch.Tensor:
-        samples = center_voice_energy(audio, target_length=self.sr)
-        peak = np.max(np.abs(samples))
+        """[XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 4: ĐỒNG HÓA ÂM HỌC RAW AUDIO TRỰC TIẾP]"""
+        clean_audio, has_speech = isolate_and_condition_speech(audio, sr=self.sr, target_length=self.sr)
+        if not has_speech:
+            clean_audio = center_voice_energy(audio, target_length=self.sr)
+        peak = np.max(np.abs(clean_audio))
         if peak > 0.08:
-            samples = (samples / peak) * 0.90
+            clean_audio = (clean_audio / peak) * 0.90
 
-        wav_t = torch.from_numpy(samples).unsqueeze(0)
+        wav_t = torch.from_numpy(clean_audio).unsqueeze(0)
         feat = self.mfcc_transform(wav_t)[0].T.unsqueeze(0)
 
         with torch.no_grad():
@@ -177,10 +274,43 @@ class FewShotEngine:
             norm_emb = F.normalize(emb, p=2, dim=-1)
         return norm_emb
 
+    def raw_audio_to_candidate_embeddings(
+        self, audio: np.ndarray, offsets_ms: tuple[int, ...] = (-120, 0, 120)
+    ) -> list[torch.Tensor]:
+        """[XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 4 + NÂNG CẤP V2.1]: Multi-Offset Temporal Embeddings kèm DSP.
+        Trích xuất danh sách các vector biểu diễn trên đa khung lệch thời gian sau khi
+        đã lọc dải thông (Bandpass) và chuẩn hóa năng lượng AGC.
+        """
+        # Bước lọc thông và AGC trước khi cắt khung
+        filtered_audio = apply_speech_bandpass_filter(audio, sr=self.sr)
+        filtered_audio = apply_automatic_gain_control(filtered_audio, target_rms=0.12)
+
+        windows = extract_temporal_candidate_windows(filtered_audio, target_length=self.sr, offsets_ms=offsets_ms)
+        embs = []
+        with torch.no_grad():
+            for w in windows:
+                peak = np.max(np.abs(w))
+                if peak > 0.08:
+                    w = (w / peak) * 0.90
+                wav_t = torch.from_numpy(w).unsqueeze(0)
+                feat = self.mfcc_transform(wav_t)[0].T.unsqueeze(0)
+                emb = self.model(feat)
+                embs.append(F.normalize(emb, p=2, dim=-1))
+        return embs
+
     def calibrate_ambient_noise(self, noise_audio: np.ndarray):
         rms = calculate_rms(noise_audio)
-        self.ambient_noise_rms = max(0.010, rms)
-        self.speech_trigger_rms = max(0.065, self.ambient_noise_rms * 1.85)
+        # [AN TOÀN CALIBRATION]: Nếu RMS > 0.032, người dùng đang nói hoặc có âm thanh lớn,
+        # tuyệt đối không được xem là tiếng ồn nền tĩnh! Đặt về mức sàn chuẩn an toàn.
+        if rms > 0.032:
+            self.ambient_noise_rms = 0.020
+            self.speech_trigger_rms = 0.055
+            self.ambient_noise_proto = None
+            return
+
+        self.ambient_noise_rms = max(0.010, min(0.028, rms))
+        # Ngưỡng bắt giọng nhạy chuẩn (0.045 - 0.065) để người dùng nói âm lượng bình thường vẫn bắt được ngay
+        self.speech_trigger_rms = max(0.045, min(0.065, self.ambient_noise_rms * 2.0))
 
         with torch.no_grad():
             self.ambient_noise_proto = self.raw_audio_to_normalized_embedding(noise_audio)
@@ -202,15 +332,71 @@ class FewShotEngine:
 
                 embs = [self.wav_to_normalized_embedding(w) for w in wav_files]
                 cat_embs = torch.cat(embs, dim=0)
-                proto = cat_embs.mean(dim=0, keepdim=True)
+
+                # -----------------------------------------------------------
+                # [NÂNG CẤP CHỈNH SỬA V2.1: Robust Outlier Pruning cho Enrollment]
+                # Khi có >= 4 mẫu, tự động phát hiện và loại trừ mẫu dị biệt (outlier)
+                # do ho, tiếng thở, bấm chuột để bảo vệ độ tinh khiết của Prototype.
+                # -----------------------------------------------------------
+                if len(embs) >= 4:
+                    raw_center = F.normalize(cat_embs.mean(dim=0, keepdim=True), p=2, dim=-1)
+                    sims_to_center = torch.matmul(cat_embs, raw_center.T).flatten()
+                    median_sim = torch.median(sims_to_center).item()
+                    valid_mask = (sims_to_center >= min(0.85, median_sim - 0.08))
+                    if valid_mask.sum().item() >= 3:
+                        inlier_embs = cat_embs[valid_mask]
+                    else:
+                        inlier_embs = cat_embs
+                else:
+                    inlier_embs = cat_embs
+
+                proto = inlier_embs.mean(dim=0, keepdim=True)
                 proto = F.normalize(proto, p=2, dim=-1)
                 self.prototypes[kw] = proto
-                enrollment_sims = torch.matmul(cat_embs, proto.T).flatten()
-                # Use a robust low percentile so one bad extra recording cannot
-                # make the command accept almost everything.
-                low_percentile = torch.quantile(enrollment_sims, 0.10)
-                calibrated = float(low_percentile.item()) - 0.025
-                self.prototype_thresholds[kw] = min(0.95, max(0.88, self.min_similarity_threshold, calibrated))
+
+                # -----------------------------------------------------------
+                # [XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 6: BOUNDED PROTOTYPE REGION & INTRA-CLASS RADIUS]
+                # Thiết lập bán kính vùng lãnh thổ hình cầu (Hypersphere Decision Region R_k).
+                # Đo độ tương đồng Cosine của các mẫu thu âm hợp lệ (inliers) so với tâm Prototype.
+                # Bán kính biên R_k bao trọn cụm từ khóa của người dùng; mọi âm thanh ngoài quả cầu
+                # này tự động bị đẩy vào Vùng Xám (Unknown Space), triệt tiêu kích hoạt nhầm từ YouTube/TV.
+                # -----------------------------------------------------------
+                enrollment_sims = torch.matmul(inlier_embs, proto.T).flatten()
+                inliers_min_sim = float(torch.min(enrollment_sims).item())
+                # Dung sai biên độ an toàn delta = 0.035 cho giọng nói người dùng bình thường
+                bounded_radius_sim = inliers_min_sim - 0.035
+                # Đặt sàn bảo vệ tối thiểu 0.935 để không bị lọt âm thanh hội thoại YouTube
+                self.prototype_thresholds[kw] = max(0.935, min(0.965, bounded_radius_sim))
+
+            # -----------------------------------------------------------
+            # [XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 5: XÂY DỰNG LỚP TIẾNG NÓI NGOÀI TỪ KHÓA (UNKNOWN)]
+            # Thu thập các mẫu âm thanh đàm thoại tổng quát, câu lệnh khác từ thư mục
+            # demo/support và demo/samples để tạo ngân hàng phân cụm đại diện cho lớp Unknown.
+            # Giúp hệ thống phân biệt rõ giọng nói bình thường/YouTube với từ khóa đã lưu.
+            # -----------------------------------------------------------
+            unk_files = []
+            for base_dir in [os.path.join(PROJECT_ROOT, "demo", "support"), os.path.join(PROJECT_ROOT, "demo", "samples")]:
+                if os.path.isdir(base_dir):
+                    for root, dirs, files in os.walk(base_dir):
+                        for f in files:
+                            if f.endswith(".wav") and f != "query_live_mic.wav":
+                                unk_files.append(os.path.join(root, f))
+
+            if unk_files:
+                cat_dict = {}
+                for p in unk_files:
+                    cat = os.path.basename(os.path.dirname(p))
+                    if cat not in cat_dict:
+                        cat_dict[cat] = []
+                    cat_dict[cat].append(self.wav_to_normalized_embedding(p))
+
+                unk_protos = [
+                    F.normalize(torch.cat(embs, dim=0).mean(dim=0, keepdim=True), p=2, dim=-1)
+                    for embs in cat_dict.values()
+                ]
+                self.unknown_proto_bank = torch.cat(unk_protos, dim=0)
+            else:
+                self.unknown_proto_bank = None
 
     def classify_audio(self, audio_data: np.ndarray) -> Dict[str, any]:
         if not self.prototypes:
@@ -228,18 +414,24 @@ class FewShotEngine:
 
         t0 = time.perf_counter()
         with torch.no_grad():
-            q_emb = self.raw_audio_to_normalized_embedding(audio_data)
+            # [NÂNG CẤP CHỈNH SỬA V2.2: Khớp mẫu trên đa khung lệch thời gian kèm VAD Vocal Isolation]
+            candidate_embs = self.raw_audio_to_candidate_embeddings(audio_data)
 
             if self.ambient_noise_proto is not None:
-                noise_sim = torch.sum(q_emb * self.ambient_noise_proto).item()
+                noise_sim = max(torch.sum(cand * self.ambient_noise_proto).item() for cand in candidate_embs)
             else:
                 noise_sim = -1.0
 
+            # [XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 5: ĐO ĐỘ TƯƠNG ĐỒNG VỚI LỚP UNKNOWN]
+            if self.unknown_proto_bank is not None:
+                unk_sim = max(torch.max(torch.matmul(cand, self.unknown_proto_bank.T)).item() for cand in candidate_embs)
+            else:
+                unk_sim = -1.0
+
             sims = {}
             for kw, proto in self.prototypes.items():
-                cos_sim = torch.sum(q_emb * proto).item()
-                cos_sim = max(-1.0, min(1.0, cos_sim))
-                sims[kw] = cos_sim
+                best_cand_sim = max(torch.sum(cand * proto).item() for cand in candidate_embs)
+                sims[kw] = max(-1.0, min(1.0, best_cand_sim))
 
             best_kw = max(sims, key=sims.get)
             max_sim = sims[best_kw]
@@ -248,7 +440,10 @@ class FewShotEngine:
             winner_margin = max_sim - runner_up_sim if runner_up_sim is not None else None
             latency_ms = (time.perf_counter() - t0) * 1000.0
 
-            if noise_sim > max_sim and noise_sim > 0.65:
+            # [AN TOÀN NOISE REJECT]: Chỉ áp dụng loại trừ tiếng ồn phòng khi năng lượng thấp (chưa đạt âm lượng phát âm)
+            # Nếu RMS >= 0.070, đây là tiếng nói trực tiếp của con người, không được phép reject!
+            is_low_energy = (rms < 0.070)
+            if is_low_energy and noise_sim > max_sim and noise_sim > 0.70:
                 return {
                     "status": "NOISE_PROTOTYPE_MATCH",
                     "rms": rms,
@@ -256,19 +451,55 @@ class FewShotEngine:
                     "latency_ms": latency_ms
                 }
 
+            # [XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 5: LOẠI TRỪ TIẾNG NÓI NGOÀI TỪ KHÓA (UNKNOWN)]
+            # Nếu độ giống của âm thanh với các mẫu Unknown cao hơn từ khóa hoặc khoảng cách
+            # cách biệt (max_sim - unk_sim) < 0.010, xác định là tiếng nói đàm thoại tự do / YouTube!
+            unknown_margin = max_sim - unk_sim
+            if self.unknown_proto_bank is not None and (unk_sim > max_sim or unknown_margin < 0.010):
+                return {
+                    "status": "UNKNOWN",
+                    "is_match": False,
+                    "best_keyword": best_kw,
+                    "similarity": max_sim,
+                    "unk_sim": unk_sim,
+                    "unknown_margin": unknown_margin,
+                    "rms": rms,
+                    "latency_ms": latency_ms,
+                    "similarities": sims
+                }
+
             temp = 0.15
             exp_vals = {k: math.exp(s / temp) for k, s in sims.items()}
             sum_exp = sum(exp_vals.values())
             conf_pct = (exp_vals[best_kw] / sum_exp) * 100.0 if sum_exp > 0 else 0.0
 
+            # -----------------------------------------------------------
+            # [NÂNG CẤP CHỈNH SỬA V2.2: Bộ lọc biên thích ứng Adaptive Winner Margin]
+            # Điều chỉnh linh hoạt khoảng cách cách biệt tối thiểu:
+            # - Khi sim rất cao (>= 0.94): chỉ cần margin >= 0.005
+            # - Khi sim cao (>= 0.90): chỉ cần margin >= 0.010
+            # - Bình thường: margin >= 0.015
+            # -----------------------------------------------------------
             required_similarity = self.prototype_thresholds.get(best_kw, self.min_similarity_threshold)
             similarity_ok = max_sim >= required_similarity
-            required_margin = 0.02 if max_sim >= 0.98 else self.min_winner_margin
+
+            if max_sim >= 0.94:
+                required_margin = 0.005
+            elif max_sim >= 0.90:
+                required_margin = 0.010
+            else:
+                required_margin = 0.015
+
             margin_ok = winner_margin is None or winner_margin >= required_margin
             is_match = similarity_ok and margin_ok
 
+            # [XỬ LÝ TIẾNG NÓI - MÔ-ĐUN 6: VÙNG XÁM TỰ ĐỘNG CHO MẪU RƠI NGOÀI BÁN KÍNH]
+            # Nếu âm thanh không nằm trong bán kính lãnh thổ R_k (similarity < required_similarity),
+            # tự động định danh là UNKNOWN (mẫu rơi vào vùng xám, nói chuyện bâng quơ / YouTube).
+            final_status = "OK" if similarity_ok else "UNKNOWN"
+
             return {
-                "status": "OK",
+                "status": final_status,
                 "is_match": is_match,
                 "best_keyword": best_kw,
                 "similarity": max_sim,
@@ -279,6 +510,8 @@ class FewShotEngine:
                 "latency_ms": latency_ms,
                 "rms": rms,
                 "noise_sim": noise_sim,
+                "unk_sim": unk_sim,
+                "unknown_margin": unknown_margin,
                 "similarities": sims
             }
 
